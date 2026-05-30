@@ -1,16 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -23,11 +13,38 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col">
+        <header className="sticky top-0 z-50 bg-background">
+          <div className="mx-auto grid h-16 w-full max-w-7xl grid-cols-3 items-center px-6 sm:px-10">
+            <button
+              type="button"
+              aria-label="Open menu"
+              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5"
+            >
+              <span className="h-px w-5 bg-white" />
+              <span className="h-px w-5 bg-white" />
+              <span className="h-px w-5 bg-white" />
+            </button>
+            <div className="justify-self-center text-base font-semibold text-white">
+              <Image
+                src="https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/LogoGrouepPureNoWordmark.png"
+                width={128}
+                height={128}
+                alt="Groupe Pure Logo"
+                className="w-6 h-6"
+              />
+            </div>
+            <a
+              href="tel:+15148855877"
+              className="justify-self-end text-sm font-medium text-white"
+            >
+              (514) 885-5877
+            </a>
+          </div>
+        </header>
+        {children}
+      </body>
     </html>
   );
 }
