@@ -284,7 +284,7 @@ export default function Home() {
                 </a>
               </li>
             </ul>
-            <p className="mt-6 w-fit text-xl font-semibold text-white">
+            <p className="mt-6 w-fit text-sm font-normal text-white/78">
               © {currentYear} Groupe Pure Construction Inc.
             </p>
           </div>
