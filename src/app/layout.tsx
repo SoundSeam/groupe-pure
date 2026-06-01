@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Image from "next/image";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -12,35 +13,102 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const navLinks = [
+    { href: "#accueil", label: "Accueil" },
+    { href: "#services", label: "Services" },
+    { href: "#projets", label: "Projets" },
+    { href: "#apropos", label: "À propos" },
+    { href: "#contact", label: "Contact" },
+  ];
+
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-50 bg-background">
-          <div className="mx-auto grid h-16 w-full max-w-7xl grid-cols-3 items-center px-6 sm:px-10">
-            <button
-              type="button"
-              aria-label="Open menu"
-              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5"
-            >
-              <span className="h-px w-5 bg-white" />
-              <span className="h-px w-5 bg-white" />
-              <span className="h-px w-5 bg-white" />
-            </button>
-            <div className="justify-self-center text-base font-semibold text-white">
-              <Image
-                src="https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/LogoGrouepPureNoWordmark.png"
-                width={128}
-                height={128}
-                alt="Groupe Pure Logo"
-                className="w-6 h-6"
-              />
+          <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-6 sm:px-10">
+            <div className="flex min-w-0 items-center gap-5">
+              <Link
+                href="#accueil"
+                aria-label="Groupe Pure accueil"
+                className="shrink-0"
+              >
+                <Image
+                  src="https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/LogoGrouepPureNoWordmark.png"
+                  width={128}
+                  height={128}
+                  alt="Groupe Pure Logo"
+                  className="h-8 w-8"
+                />
+              </Link>
+              <nav
+                aria-label="Navigation principale"
+                className="hidden items-center gap-1 text-sm font-medium text-white/78 lg:flex"
+              >
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-lg px-3 py-2 transition hover:bg-white/8 hover:text-white"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
             </div>
-            <a
-              href="tel:+15148855877"
-              className="justify-self-end text-sm font-medium text-white"
-            >
-              (514) 885-5877
-            </a>
+            <div className="hidden shrink-0 items-center gap-4 lg:flex">
+              <a
+                href="tel:+15148855877"
+                className="text-sm font-medium text-white"
+              >
+                (514) 885-5877
+              </a>
+              <Link
+                href="#contact"
+                className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-white/90"
+              >
+                Démarrer un projet
+              </Link>
+            </div>
+            <details className="group relative lg:hidden">
+              <summary
+                aria-label="Ouvrir le menu"
+                className="flex h-10 w-10 cursor-pointer list-none flex-col items-center justify-center gap-1.5 rounded-lg transition hover:bg-white/8 [&::-webkit-details-marker]:hidden"
+              >
+                <span className="h-px w-5 bg-white" />
+                <span className="h-px w-5 bg-white" />
+                <span className="h-px w-5 bg-white" />
+              </summary>
+              <div className="absolute right-0 top-12 w-[min(calc(100vw-3rem),18rem)] border border-white/10 bg-background p-2">
+                <nav
+                  aria-label="Navigation mobile"
+                  className="flex flex-col text-sm font-medium text-white/78"
+                >
+                  {navLinks.map((link) => (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="rounded-lg px-3 py-3 transition hover:bg-white/8 hover:text-white"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="mt-2 border-t border-white/10 pt-2">
+                  <a
+                    href="tel:+15148855877"
+                    className="block rounded-lg px-3 py-3 text-sm font-medium text-white transition hover:bg-white/8"
+                  >
+                    (514) 885-5877
+                  </a>
+                  <Link
+                    href="#contact"
+                    className="mt-2 block rounded-xl bg-white px-5 py-3 text-center text-sm font-medium text-[#101211] transition hover:bg-white/90"
+                  >
+                    Démarrer un projet
+                  </Link>
+                </div>
+              </div>
+            </details>
           </div>
         </header>
         {children}

@@ -2,21 +2,24 @@ import Image from "next/image";
 import { Blueprint, Bulldozer, CraneTower } from "@phosphor-icons/react/ssr";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
+const fieldClass =
+  "w-full rounded-t-xl border-0 border-b border-white/10 bg-[#171a18] px-5 py-4 text-base text-white outline-none transition placeholder:text-white/40 focus:border-white/35";
+
 const pillars = [
   {
     title: "Architecture",
     icon: "architecture",
-    lead: "Donner forme à l’intention.",
+    lead: "Nous transformons vos intentions en plans clairs, réfléchis et adaptés à la façon dont chaque lieu sera réellement habité.",
   },
   {
     title: "Construction",
     icon: "construction",
-    lead: "Bâtir avec maîtrise.",
+    lead: "Nos équipes coordonnent chaque étape du chantier avec rigueur, pour que l’exécution reste fidèle à la vision initiale.",
   },
   {
     title: "Excavation",
     icon: "excavation",
-    lead: "Préparer le sol. Élever la suite.",
+    lead: "Nous préparons le terrain avec précision afin que les fondations du projet soient solides, propres et prêtes pour la suite.",
   },
 ];
 
@@ -78,7 +81,10 @@ export default function Home() {
 
   return (
     <>
-      <main className="relative flex min-h-[calc(100vh-4rem)] flex-col justify-end overflow-hidden rounded-b-[3rem] pb-16 text-left sm:pb-20">
+      <main
+        id="accueil"
+        className="relative flex min-h-[calc(100vh-4rem)] flex-col justify-end overflow-hidden rounded-b-[3rem] pb-16 text-left sm:pb-20"
+      >
         <video
           className="absolute inset-0 h-full w-full object-cover"
           autoPlay
@@ -88,7 +94,7 @@ export default function Home() {
           aria-hidden="true"
         >
           <source
-            src="https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/tic+.mp4"
+            src="https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/WebCinematicHero.mp4"
             type="video/mp4"
           />
         </video>
@@ -103,12 +109,12 @@ export default function Home() {
               intention jusqu’à leur livraison finale, avec une même exigence :
               créer, bâtir et livrer avec précision.
             </p>
-            <button
-              type="button"
+            <a
+              href="#contact"
               className="mt-10 rounded-xl bg-white px-9 py-4 text-lg font-medium text-[#101211]"
             >
               Démarrer un projet
-            </button>
+            </a>
           </div>
           <div className="hidden shrink-0 text-right sm:block">
             <div className="relative h-10 w-32">
@@ -127,14 +133,14 @@ export default function Home() {
         </div>
       </main>
 
-      <section className="bg-[#101211] py-20 sm:py-28">
+      <section id="services" className="bg-[#101211] py-20 sm:py-28">
         <div className="mx-auto w-full max-w-7xl px-6 sm:px-10">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <h2 className="max-w-3xl text-3xl font-semibold text-white sm:text-5xl">
               Du premier trait à la dernière finition.
             </h2>
-            <div className="flex flex-col items-center text-center lg:items-end">
-              <div className="inline-flex items-center justify-center gap-2.5 bg-[#171a18] px-5 py-3">
+            <div className="flex w-full items-center justify-between gap-3 text-left lg:w-auto lg:justify-end lg:text-right">
+              <div className="inline-flex items-center justify-start gap-2.5 bg-[#171a18] px-5 py-3">
                 <div className="flex items-baseline gap-1 text-sm leading-none text-white">
                   <span className="font-semibold">5.0</span>
                   <span className="font-normal text-white/65">(13)</span>
@@ -147,13 +153,13 @@ export default function Home() {
                   <StarIcon />
                 </div>
               </div>
-              <div className="relative mt-3 h-5 w-46 flex items-end">
+              <div className="relative h-5 w-20 shrink-0">
                 <Image
                   src="https://framerusercontent.com/images/LjmZJ9uXcyr7VxCbjoNlhmWT9Cg.png"
                   alt="Google"
                   fill
-                  sizes="64px"
-                  className="object-contain ml-auto"
+                  sizes="80px"
+                  className="object-contain object-right"
                 />
               </div>
             </div>
@@ -194,7 +200,7 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="relative mt-16 sm:mt-20">
+          <div id="apropos" className="relative mt-16 scroll-mt-24 sm:mt-20">
             <div className="absolute top-0 bottom-0 left-1/2 w-screen -translate-x-1/2 bg-[#171a18]" />
             <div className="relative py-12 sm:py-16">
               <div className="grid gap-5 lg:grid-cols-3">
@@ -221,7 +227,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="mt-12 grid gap-5 sm:mt-16 md:grid-cols-2 xl:grid-cols-3">
+              <div
+                id="projets"
+                className="mt-12 grid scroll-mt-24 gap-5 sm:mt-16 md:grid-cols-2 xl:grid-cols-3"
+              >
                 {featuredProjects.map((project) => (
                   <article key={project.title} className="relative aspect-[4/3] overflow-hidden">
                     <Image
@@ -250,6 +259,86 @@ export default function Home() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact" className="bg-[#101211] py-20 sm:py-28">
+        <div className="mx-auto w-full max-w-7xl px-6 sm:px-10">
+          <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <div>
+              <p className="text-sm font-medium text-white/60">Contact</p>
+              <h2 className="mt-4 max-w-3xl text-3xl font-semibold text-white sm:text-5xl">
+                Parlez-nous de votre projet.
+              </h2>
+              <p className="mt-6 max-w-2xl text-lg font-light leading-8 text-white/70 sm:text-xl">
+                Architecture, construction ou excavation : notre équipe vous
+                répond avec une direction claire dès les premières étapes.
+              </p>
+            </div>
+
+            <form className="grid gap-4 sm:grid-cols-2">
+              <input
+                className={fieldClass}
+                name="name"
+                placeholder="Nom"
+                type="text"
+              />
+              <input
+                className={fieldClass}
+                name="email"
+                placeholder="Courriel"
+                type="email"
+              />
+              <input
+                className={fieldClass}
+                name="phone"
+                placeholder="Téléphone"
+                type="tel"
+              />
+              <div className="relative">
+                <select
+                  className={`${fieldClass} appearance-none pr-14 text-white [&:invalid]:text-white/40`}
+                  defaultValue=""
+                  name="construction-type"
+                  required
+                >
+                  <option value="" disabled>
+                    Type de chantier
+                  </option>
+                  <option value="architecture">Architecture</option>
+                  <option value="construction">Construction</option>
+                  <option value="excavation">Excavation</option>
+                </select>
+                <svg
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/55"
+                  fill="none"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    d="m4 6 4 4 4-4"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </div>
+              <textarea
+                className={`${fieldClass} min-h-40 resize-none sm:col-span-2`}
+                name="message"
+                placeholder="Message"
+              />
+              <div className="sm:col-span-2">
+                <button
+                  type="button"
+                  className="rounded-xl bg-white px-9 py-4 text-lg font-medium text-[#101211]"
+                >
+                  Envoyer
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </section>
