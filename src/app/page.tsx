@@ -27,7 +27,7 @@ const featuredProjects = [
   {
     title: "LE 2100",
     image:
-      "https://www.matierepremierearchitecture.ca/assets/project/le-plateau/6.jpg?4b5713bb",
+      "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jun+1%2C+2026%2C+03_54_15+PM.png",
   },
   {
     title: "RÉSIDENCE MONTCALM",
