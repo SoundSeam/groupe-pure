@@ -2,21 +2,63 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-const navLinks = [
-  { href: "#accueil", label: "Accueil" },
-  { href: "#services", label: "Services" },
-  { href: "#projets", label: "Projets" },
-  { href: "#apropos", label: "À propos" },
-  { href: "#contact", label: "Contact" },
-];
+type HeaderLink = {
+  href: string;
+  label: string;
+};
 
-export default function SiteHeader() {
+type SiteHeaderProps = {
+  lang: "en" | "fr";
+  logo: string;
+  phoneLabel: string;
+  phoneHref: string;
+  labels: {
+    homeLabel: string;
+    navLabel: string;
+    mobileNavLabel: string;
+    openMenu: string;
+    closeMenu: string;
+    startProject: string;
+    languageLabel: string;
+    links: readonly HeaderLink[];
+  };
+};
+
+function localizedHref(lang: "en" | "fr", href: string) {
+  return href === "/" ? `/${lang}` : `/${lang}${href}`;
+}
+
+function equivalentLanguageHref(pathname: string, nextLang: "en" | "fr") {
+  const segments = pathname.split("/").filter(Boolean);
+
+  if (segments[0] === "en" || segments[0] === "fr") {
+    segments[0] = nextLang;
+    return `/${segments.join("/")}`;
+  }
+
+  return `/${nextLang}`;
+}
+
+export default function SiteHeader({
+  lang,
+  logo,
+  phoneLabel,
+  phoneHref,
+  labels,
+}: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuId = useId();
+  const pathname = usePathname();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const otherLang = lang === "fr" ? "en" : "fr";
+  const otherLangHref = useMemo(
+    () => equivalentLanguageHref(pathname, otherLang),
+    [otherLang, pathname],
+  );
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -44,7 +86,6 @@ export default function SiteHeader() {
       }
     };
 
-    const handleHashChange = () => closeMenu();
     const desktopMedia = window.matchMedia("(min-width: 1024px)");
     const handleDesktopChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
@@ -54,13 +95,11 @@ export default function SiteHeader() {
 
     document.addEventListener("pointerdown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("hashchange", handleHashChange);
     desktopMedia.addEventListener("change", handleDesktopChange);
 
     return () => {
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("hashchange", handleHashChange);
       desktopMedia.removeEventListener("change", handleDesktopChange);
     };
   }, [isMenuOpen]);
@@ -70,13 +109,13 @@ export default function SiteHeader() {
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-6 sm:px-10">
         <div className="flex min-w-0 items-center gap-5">
           <Link
-            href="#accueil"
-            aria-label="Groupe Pure accueil"
+            href={`/${lang}`}
+            aria-label={labels.homeLabel}
             className="shrink-0"
             onClick={closeMenu}
           >
             <Image
-              src="https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/LogoGrouepPureNoWordmark.png"
+              src={logo}
               width={128}
               height={128}
               alt="Groupe Pure Logo"
@@ -84,13 +123,13 @@ export default function SiteHeader() {
             />
           </Link>
           <nav
-            aria-label="Navigation principale"
+            aria-label={labels.navLabel}
             className="hidden items-center gap-1 text-sm font-medium text-white/78 lg:flex"
           >
-            {navLinks.map((link) => (
+            {labels.links.map((link) => (
               <Link
                 key={link.href}
-                href={link.href}
+                href={localizedHref(lang, link.href)}
                 className="rounded-lg px-3 py-2 transition hover:bg-white/8 hover:text-white"
               >
                 {link.label}
@@ -99,14 +138,22 @@ export default function SiteHeader() {
           </nav>
         </div>
         <div className="hidden shrink-0 items-center gap-4 lg:flex">
-          <a href="tel:+15148855877" className="text-sm font-medium text-white">
-            (514) 885-5877
+          <a href={phoneHref} className="text-sm font-medium text-white">
+            {phoneLabel}
           </a>
           <Link
-            href="#contact"
+            href={otherLangHref}
+            hrefLang={otherLang}
+            aria-label={labels.languageLabel}
+            className="rounded-lg px-3 py-2 text-sm font-medium uppercase text-white/78 transition hover:bg-white/8 hover:text-white"
+          >
+            {otherLang}
+          </Link>
+          <Link
+            href={localizedHref(lang, "/contact")}
             className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-white/90"
           >
-            Démarrer un projet
+            {labels.startProject}
           </Link>
         </div>
         <div className="relative lg:hidden">
@@ -115,7 +162,7 @@ export default function SiteHeader() {
             type="button"
             aria-controls={menuId}
             aria-expanded={isMenuOpen}
-            aria-label={isMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+            aria-label={isMenuOpen ? labels.closeMenu : labels.openMenu}
             className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-xl transition hover:bg-white/8 aria-expanded:bg-white/8"
             onClick={() => setIsMenuOpen((open) => !open)}
           >
@@ -131,13 +178,13 @@ export default function SiteHeader() {
               className="absolute right-0 top-full mt-2 w-[min(calc(100vw-3rem),18rem)] rounded-xl border border-white/10 bg-background p-2 shadow-xl shadow-black/20"
             >
               <nav
-                aria-label="Navigation mobile"
+                aria-label={labels.mobileNavLabel}
                 className="flex flex-col text-sm font-medium text-white/78"
               >
-                {navLinks.map((link) => (
+                {labels.links.map((link) => (
                   <Link
                     key={link.href}
-                    href={link.href}
+                    href={localizedHref(lang, link.href)}
                     className="rounded-lg px-3 py-3 transition hover:bg-white/8 hover:text-white"
                     onClick={closeMenu}
                   >
@@ -147,18 +194,27 @@ export default function SiteHeader() {
               </nav>
               <div className="mt-2 border-t border-white/10 pt-2">
                 <a
-                  href="tel:+15148855877"
+                  href={phoneHref}
                   className="block rounded-lg px-3 py-3 text-sm font-medium text-white transition hover:bg-white/8"
                   onClick={closeMenu}
                 >
-                  (514) 885-5877
+                  {phoneLabel}
                 </a>
                 <Link
-                  href="#contact"
+                  href={otherLangHref}
+                  hrefLang={otherLang}
+                  aria-label={labels.languageLabel}
+                  className="block rounded-lg px-3 py-3 text-sm font-medium uppercase text-white/78 transition hover:bg-white/8 hover:text-white"
+                  onClick={closeMenu}
+                >
+                  {otherLang}
+                </Link>
+                <Link
+                  href={localizedHref(lang, "/contact")}
                   className="mt-2 block rounded-xl bg-white px-5 py-3 text-center text-sm font-medium text-[#101211] transition hover:bg-white/90"
                   onClick={closeMenu}
                 >
-                  Démarrer un projet
+                  {labels.startProject}
                 </Link>
               </div>
             </div>
