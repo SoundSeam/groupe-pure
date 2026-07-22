@@ -13,6 +13,7 @@ export type Service = {
   examples: string[];
   image: string;
   imageAlt: string;
+  video?: string;
 };
 
 export type Project = {
@@ -32,6 +33,13 @@ const serviceImages = {
   excavation:
     "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jun+1%2C+2026%2C+03_54_15+PM.png",
 };
+
+const architectureVideo =
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/super_cinematic%2C_slow_pan_202607221517.mp4";
+const constructionVideo =
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/IMG_3004.mov";
+const excavationVideo =
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/IMG_2222.mov";
 
 const dictionaries = {
   fr: {
@@ -183,6 +191,7 @@ const dictionaries = {
         ],
         image: serviceImages.architecture,
         imageAlt: "Intérieur architectural contemporain",
+        video: architectureVideo,
       },
       {
         key: "construction",
@@ -198,6 +207,7 @@ const dictionaries = {
         ],
         image: serviceImages.construction,
         imageAlt: "Résidence contemporaine en construction",
+        video: constructionVideo,
       },
       {
         key: "excavation",
@@ -214,6 +224,7 @@ const dictionaries = {
         ],
         image: serviceImages.excavation,
         imageAlt: "Terrain préparé pour un chantier haut de gamme",
+        video: excavationVideo,
       },
     ] satisfies Service[],
     servicesPage: {
@@ -489,6 +500,7 @@ const dictionaries = {
         ],
         image: serviceImages.architecture,
         imageAlt: "Contemporary architectural interior",
+        video: architectureVideo,
       },
       {
         key: "construction",
@@ -504,6 +516,7 @@ const dictionaries = {
         ],
         image: serviceImages.construction,
         imageAlt: "Contemporary residence under construction",
+        video: constructionVideo,
       },
       {
         key: "excavation",
@@ -519,6 +532,7 @@ const dictionaries = {
         ],
         image: serviceImages.excavation,
         imageAlt: "Prepared site for a high-end build",
+        video: excavationVideo,
       },
     ] satisfies Service[],
     servicesPage: {

@@ -13,7 +13,7 @@ import {
 } from "@/components/site-ui";
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, getLocalizedPath, hasLocale } from "@/lib/i18n";
-import { assets, contact } from "@/lib/site-data";
+import { assets, contact, partnerLogos } from "@/lib/site-data";
 import type { Locale } from "@/lib/i18n";
 
 export async function generateMetadata({
@@ -73,7 +73,7 @@ export default async function Home({
           <source src={assets.heroVideo} type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-[#101211]/70" />
-        <div className="relative z-10 mx-auto flex w-full max-w-7xl items-end justify-between gap-8 px-6 sm:px-10">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl items-end gap-8 px-6 sm:px-10">
           <div className="flex max-w-4xl flex-col items-start">
             <h1 className="text-4xl font-semibold text-white [text-shadow:0_3px_24px_rgba(0,0,0,0.55)] sm:text-6xl">
               {dict.home.heroTitle}
@@ -87,22 +87,28 @@ export default async function Home({
               </PrimaryButton>
             </div>
           </div>
-          <div className="hidden shrink-0 text-right sm:block">
-            <div className="relative h-10 w-32">
-              <Image
-                src={assets.apchqLogo}
-                alt={dict.common.apchqAlt}
-                fill
-                sizes="128px"
-                className="object-contain"
-              />
-            </div>
-            <p className="mt-2 w-32 text-center text-[10px] font-semibold leading-none text-white/70">
-              {contact.rbq}
-            </p>
-          </div>
         </div>
       </section>
+
+      <div className="py-10 sm:py-12">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-x-8 gap-y-8 px-6 sm:grid-cols-2 sm:px-10 sm:[&>*:last-child]:col-span-2 lg:grid-cols-5 lg:gap-x-6 lg:[&>*:last-child]:col-span-1">
+          {partnerLogos.map((logo, index) => (
+            <div
+              key={logo.src}
+              className="flex h-[68px] min-w-0 items-center justify-center"
+            >
+              <Image
+                src={logo.src}
+                alt={logo.alt}
+                width={logo.width}
+                height={logo.height}
+                sizes="(min-width: 1024px) 240px, (min-width: 640px) 260px, 280px"
+                className={`${index === 0 ? "h-[68px]" : "h-10"} w-auto max-w-full object-contain`}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
 
       <SectionShell>
         <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">

@@ -9,7 +9,7 @@ export const contact = {
 };
 
 export const assets = {
-  logo: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/LogoGrouepPureNoWordmark.png",
+  logo: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/goldtemplogo.png",
   heroVideo:
     "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/WebCinematicHero.mp4",
   apchqLogo:
@@ -17,6 +17,39 @@ export const assets = {
   googleLogo:
     "https://framerusercontent.com/images/LjmZJ9uXcyr7VxCbjoNlhmWT9Cg.png",
 };
+
+export const partnerLogos = [
+  {
+    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/logo_otpq_horizontal.png",
+    alt: "Ordre des technologues professionnels du Québec",
+    width: 2307,
+    height: 828,
+  },
+  {
+    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/apchq-logo-dark.svg",
+    alt: "APCHQ",
+    width: 217,
+    height: 40,
+  },
+  {
+    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ccq-logo.svg",
+    alt: "Commission de la construction du Québec",
+    width: 248,
+    height: 73,
+  },
+  {
+    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/acq-logo.svg",
+    alt: "Association de la construction du Québec",
+    width: 778,
+    height: 143,
+  },
+  {
+    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/rbq.png",
+    alt: "Régie du bâtiment du Québec",
+    width: 500,
+    height: 146,
+  },
+] as const;
 
 export const projectImages = [
   "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jun+1%2C+2026%2C+03_54_15+PM.png",

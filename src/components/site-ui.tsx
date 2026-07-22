@@ -88,7 +88,26 @@ export function ServiceCard({ service }: { service: Service }) {
   return (
     <article className="flex flex-col">
       <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-[#171a18]">
-        <ServiceIcon service={service.key} />
+        {service.video ? (
+          <>
+            <video
+              className={`h-full w-full object-cover ${
+                service.key === "construction"
+                  ? "object-[center_40%]"
+                  : ""
+              }`}
+              src={service.video}
+              poster={service.image}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-hidden="true"
+            />
+          </>
+        ) : (
+          <ServiceIcon service={service.key} />
+        )}
       </div>
       <div className="mt-8">
         <h3 className="text-xl font-semibold text-white sm:text-3xl">
