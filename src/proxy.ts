@@ -3,9 +3,7 @@ import type { NextRequest } from "next/server";
 
 const locales = ["en", "fr"] as const;
 const defaultLocale = "fr";
-const fullSiteEnabled =
-  process.env.NODE_ENV !== "production" ||
-  process.env.FULL_SITE_ENABLED === "true";
+const fullSiteEnabled = process.env.FULL_SITE_ENABLED === "true";
 
 function pathnameHasLocale(pathname: string) {
   return locales.some(

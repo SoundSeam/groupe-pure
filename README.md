@@ -20,14 +20,13 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Production page visibility
+## Page visibility
 
-Production deployments are homepage-only by default. Requests for any other
-page redirect to the homepage in the requested or preferred language.
+The site is homepage-only by default in every environment. Requests for any
+other page redirect to the homepage in the requested or preferred language.
 
-Set `FULL_SITE_ENABLED=true` in the production environment to make every page
-available. Development continues to expose the full site regardless of the
-flag.
+Set `FULL_SITE_ENABLED=true` to make every page available. Missing, empty, and
+`false` values keep secondary pages hidden.
 
 ## Live Google rating
 
