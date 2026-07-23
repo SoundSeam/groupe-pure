@@ -20,6 +20,15 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Production page visibility
+
+Production deployments are homepage-only by default. Requests for any other
+page redirect to the homepage in the requested or preferred language.
+
+Set `FULL_SITE_ENABLED=true` in the production environment to make every page
+available. Development continues to expose the full site regardless of the
+flag.
+
 ## Live Google rating
 
 The home page uses Google Maps Platform's Places UI Kit to load the current

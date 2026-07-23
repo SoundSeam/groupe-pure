@@ -3,9 +3,18 @@ import type { NextRequest } from "next/server";
 
 const locales = ["en", "fr"] as const;
 const defaultLocale = "fr";
+const fullSiteEnabled =
+  process.env.NODE_ENV !== "production" ||
+  process.env.FULL_SITE_ENABLED === "true";
 
 function pathnameHasLocale(pathname: string) {
   return locales.some(
+    (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
+  );
+}
+
+function getPathnameLocale(pathname: string) {
+  return locales.find(
     (locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`),
   );
 }
@@ -36,6 +45,18 @@ function getPreferredLocale(request: NextRequest) {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (!fullSiteEnabled && pathname !== "/") {
+    const pathnameLocale = getPathnameLocale(pathname);
+
+    if (pathname !== `/${pathnameLocale}`) {
+      const locale = pathnameLocale ?? getPreferredLocale(request);
+      const url = request.nextUrl.clone();
+      url.pathname = `/${locale}`;
+
+      return NextResponse.redirect(url);
+    }
+  }
 
   if (pathnameHasLocale(pathname)) {
     return NextResponse.next();
