@@ -8,14 +8,25 @@ export const contact = {
   rbq: "RBQ 5773-2182-01",
 };
 
+export const googleBusiness = {
+  placeId: "ChIJYfqnaBUdyUwRhU9gd9XSOJs",
+  mapsUrl:
+    "https://www.google.com/maps?place_id=ChIJYfqnaBUdyUwRhU9gd9XSOJs",
+};
+
 export const assets = {
-  logo: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/goldtemplogo.png",
+  logo:
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/logovertical.png",
+  headerLogo:
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/logohorizontal.png",
+  contactBuilding:
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/building.webp",
   heroVideo:
     "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/WebCinematicHero.mp4",
+  territoryImage:
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/building.webp",
   apchqLogo:
     "https://inscriptions.galonsapchq.com/assets/logo-apchq-d0e669d9d2244f9ddf421839a73a8f0a6bed7db640029f5d5827cfb2f0a78adb.png",
-  googleLogo:
-    "https://framerusercontent.com/images/LjmZJ9uXcyr7VxCbjoNlhmWT9Cg.png",
 };
 
 export const partnerLogos = [
@@ -36,6 +47,12 @@ export const partnerLogos = [
     alt: "Commission de la construction du Québec",
     width: 248,
     height: 73,
+  },
+  {
+    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/cnesst.png",
+    alt: "Commission des normes, de l’équité, de la santé et de la sécurité du travail",
+    width: 576,
+    height: 216,
   },
   {
     src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/acq-logo.svg",

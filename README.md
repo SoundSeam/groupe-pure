@@ -20,6 +20,35 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Live Google rating
+
+The home page uses Google Maps Platform's Places UI Kit to load the current
+rating and review count for Groupe Pure. Without credentials, it falls back to a
+link that opens the business on Google Maps and never displays stale totals.
+
+1. Create or select a billing-enabled project in Google Cloud.
+2. Enable **Maps JavaScript API** and **Places API (New)**.
+3. Create a browser API key and restrict it:
+   - Application restriction: **Websites**
+   - Allowed production referrers: `https://groupepure.ca/*` and
+     `https://www.groupepure.ca/*`
+   - Add `http://localhost:3000/*` only for local development.
+   - API restrictions: **Maps JavaScript API** and **Places API (New)**.
+4. Copy `.env.example` to `.env.local` and set
+   `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
+5. After verifying the key restrictions, set
+   `GOOGLE_MAPS_REVIEWS_ENABLED=true`.
+6. Add both environment variables to the production deployment and rebuild.
+
+The live widget is opt-in. If `GOOGLE_MAPS_REVIEWS_ENABLED` is missing or is not
+exactly `true`, the site displays the Google Maps fallback link and makes no
+Places API request.
+
+The Google Place ID is public and is already configured for Groupe Pure. It can
+be overridden with `NEXT_PUBLIC_GOOGLE_MAPS_PLACE_ID` if the listing changes.
+The API key is intentionally delivered to the browser, so its website and API
+restrictions are required.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

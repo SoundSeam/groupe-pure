@@ -51,7 +51,7 @@ export default async function ServicesPage({
         lead={dict.servicesPage.lead}
       />
       <SectionShell className="pt-0">
-        <div className="space-y-20 sm:space-y-28">
+        <div className="space-y-28 sm:space-y-40">
           {dict.services.map((service, index) => (
             <ServiceFeature
               key={service.key}

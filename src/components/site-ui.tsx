@@ -45,7 +45,7 @@ export function PageHero({
   lead: string;
 }) {
   return (
-    <section className="bg-[#101211] py-20 sm:py-28">
+    <section className="bg-[#101211] pt-20 pb-7 sm:pt-28 sm:pb-10">
       <div className="mx-auto w-full max-w-7xl px-6 sm:px-10">
         <p className="text-sm font-medium text-white/60">{eyebrow}</p>
         <h1 className="mt-4 max-w-5xl text-4xl font-semibold text-white sm:text-6xl">
@@ -69,7 +69,7 @@ export function PrimaryButton({
   return (
     <Link
       href={href}
-      className="inline-flex rounded-xl bg-white px-9 py-4 text-lg font-medium text-[#101211] transition hover:bg-white/90"
+      className="inline-flex rounded-xl bg-[#e4c58f] px-9 py-4 text-lg font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
     >
       {children}
     </Link>
@@ -116,16 +116,6 @@ export function ServiceCard({ service }: { service: Service }) {
         <p className="mt-2 text-base font-light leading-7 text-white/70 sm:text-lg">
           {service.lead}
         </p>
-        <div className="mt-6 flex flex-wrap gap-2">
-          {service.examples.map((example) => (
-            <span
-              key={example}
-              className="rounded-lg bg-white/[0.06] px-3 py-2 text-sm font-light text-white/68"
-            >
-              {example}
-            </span>
-          ))}
-        </div>
       </div>
     </article>
   );
@@ -134,31 +124,44 @@ export function ServiceCard({ service }: { service: Service }) {
 export function ServiceFeature({ service, reverse = false }: { service: Service; reverse?: boolean }) {
   return (
     <article
-      className={`grid gap-8 lg:grid-cols-2 lg:items-center ${
+      className={`grid gap-16 lg:grid-cols-2 lg:items-start ${
         reverse ? "lg:[&>div:first-child]:order-2" : ""
       }`}
     >
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl bg-[#171a18]">
+      <div className="relative aspect-video overflow-hidden rounded-xl bg-[#171a18]">
         <Image
           src={service.image}
           alt={service.imageAlt}
           fill
           sizes="(min-width: 1024px) 45vw, 100vw"
-          className="object-cover"
+          className={`object-cover ${
+            service.key === "construction" || service.key === "excavation"
+              ? "object-[center_40%]"
+              : ""
+          }`}
         />
         <div className="absolute inset-0 bg-black/20" />
       </div>
       <div>
-        <ServiceIcon service={service.key} className="mb-8 h-16 w-16 text-white" />
         <h2 className="text-3xl font-semibold text-white sm:text-5xl">
           {service.title}
         </h2>
         <p className="mt-5 text-lg font-light leading-8 text-white/70 sm:text-xl">
           {service.lead}
         </p>
-        <p className="mt-5 text-base font-light leading-7 text-white/65 sm:text-lg">
-          {service.detail}
-        </p>
+        <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2">
+          {service.examples.map((example) => (
+            <li
+              key={example}
+              className="flex items-start gap-2 text-sm font-light leading-6 text-white/68"
+            >
+              <span aria-hidden="true" className="text-[#e4c58f]">
+                •
+              </span>
+              <span>{example}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </article>
   );
@@ -205,6 +208,7 @@ export function ProjectCard({
 export function Footer({
   dict,
   contact,
+  lang,
   logo,
 }: {
   dict: Dictionary;
@@ -214,6 +218,7 @@ export function Footer({
     email: string;
     address: string;
   };
+  lang: Locale;
   logo: string;
 }) {
   const currentYear = new Date().getFullYear();
@@ -222,13 +227,24 @@ export function Footer({
     <footer className="bg-[#101211] py-20">
       <div className="mx-auto grid w-full max-w-7xl gap-16 px-6 sm:px-10 lg:grid-cols-2 lg:items-end">
         <div className="inline-flex w-fit flex-col items-start self-end lg:justify-self-start">
-          <Image
-            src={logo}
-            width={128}
-            height={128}
-            alt={dict.common.logoAlt}
-            className="h-16 w-16"
-          />
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Image
+              src={logo}
+              width={988}
+              height={988}
+              alt={dict.common.logoAlt}
+              className="h-[4.2rem] w-[4.2rem] shrink-0 origin-center scale-[1.05] object-contain sm:h-[4.9rem] sm:w-[4.9rem]"
+            />
+            <div
+              className="h-[4.2rem] w-px shrink-0 bg-white/60 sm:h-[4.9rem]"
+              aria-hidden="true"
+            />
+            <div className="flex flex-col items-start gap-[0.4875rem] text-left text-[0.95rem] font-medium leading-[1.425rem] text-white sm:gap-[0.6125rem] sm:text-[1.06875rem]">
+              <p>Architecture</p>
+              <p>Consturuction</p>
+              <p>Excavation</p>
+            </div>
+          </div>
           <ul className="mt-8 inline-flex w-fit items-center gap-4 text-white">
             <li className="w-fit">
               <a
@@ -252,6 +268,23 @@ export function Footer({
           <p className="mt-6 w-fit text-sm font-normal text-white/78">
             © {currentYear} {dict.common.copyright}
           </p>
+          <nav
+            aria-label={`${dict.common.privacy} / ${dict.common.terms}`}
+            className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-white/55"
+          >
+            <Link
+              href={getLocalizedPath(lang, "/privacy")}
+              className="transition hover:text-white"
+            >
+              {dict.common.privacy}
+            </Link>
+            <Link
+              href={getLocalizedPath(lang, "/terms")}
+              className="transition hover:text-white"
+            >
+              {dict.common.terms}
+            </Link>
+          </nav>
         </div>
 
         <div className="inline-flex w-fit flex-col items-start self-end lg:items-end lg:justify-self-end">
@@ -262,7 +295,10 @@ export function Footer({
             <a href={contact.phoneHref} className="inline-block w-fit">
               {contact.phoneLabel}
             </a>
-            <a href={`mailto:${contact.email}`} className="inline-block w-fit">
+            <a
+              href={`mailto:${contact.email}`}
+              className="inline-block w-fit"
+            >
               {contact.email}
             </a>
             <p className="w-fit max-w-xs text-balance">{contact.address}</p>

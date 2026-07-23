@@ -4,9 +4,9 @@ import { notFound } from "next/navigation";
 import {
   CtaBand,
   PageHero,
-  ProjectCard,
   SectionShell,
 } from "@/components/site-ui";
+import { ProjectCarousel } from "@/components/project-carousel";
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, hasLocale } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -42,6 +42,53 @@ export default async function ProjectsPage({
   if (!hasLocale(lang)) notFound();
 
   const dict = await getDictionary(lang);
+  const carouselLabels =
+    lang === "fr"
+      ? {
+          previous: "Image précédente",
+          next: "Image suivante",
+          image: "Image",
+        }
+      : {
+          previous: "Previous image",
+          next: "Next image",
+          image: "Image",
+        };
+  const projectSections = [
+    {
+      title: dict.services[0].title,
+      images: [
+        dict.projects[1],
+        dict.projects[2],
+        dict.projects[3],
+        dict.projects[4],
+        dict.projects[5],
+        dict.projects[0],
+      ],
+    },
+    {
+      title: dict.services[1].title,
+      images: [
+        dict.projects[0],
+        dict.projects[3],
+        dict.projects[4],
+        dict.projects[1],
+        dict.projects[2],
+        dict.projects[5],
+      ],
+    },
+    {
+      title: dict.services[2].title,
+      images: [
+        dict.projects[0],
+        dict.projects[4],
+        dict.projects[5],
+        dict.projects[3],
+        dict.projects[1],
+        dict.projects[2],
+      ],
+    },
+  ];
 
   return (
     <main>
@@ -51,14 +98,18 @@ export default async function ProjectsPage({
         lead={dict.projectsPage.lead}
       />
       <SectionShell className="pt-0">
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {dict.projects.map((project) => (
-            <ProjectCard key={project.title} project={project} />
+        <div className="space-y-20 sm:space-y-28">
+          {projectSections.map((section) => (
+            <ProjectCarousel
+              key={section.title}
+              title={section.title}
+              images={section.images}
+              previousLabel={carouselLabels.previous}
+              nextLabel={carouselLabels.next}
+              imageLabel={carouselLabels.image}
+            />
           ))}
         </div>
-        <p className="mt-10 max-w-3xl text-base font-light leading-7 text-white/60">
-          {dict.projectsPage.note}
-        </p>
       </SectionShell>
       <CtaBand
         lang={lang as Locale}

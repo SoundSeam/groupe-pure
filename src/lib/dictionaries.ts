@@ -27,19 +27,115 @@ export type Project = {
 
 const serviceImages = {
   architecture:
-    "https://www.matierepremierearchitecture.ca/assets/project/le-plateau/4.jpg?bb264d85",
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/708488574_18007329599876233_7701415963308166788_n.jpeg",
   construction:
-    "https://www.matierepremierearchitecture.ca/assets/project/sur-le-ruisseau/1.jpg?c96649b5",
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jul+23%2C+2026%2C+03_00_23+PM.png",
   excavation:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jun+1%2C+2026%2C+03_54_15+PM.png",
+    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/excavationsevice.jpg",
 };
 
+const teamPortraits = [
+  "/team/project-director-v2.png",
+  "/team/architectural-technologist-v2.png",
+  "/team/project-coordinator-v2.png",
+] as const;
+const maudePortrait = "/team/maude-desormeaux-professional.png";
+const mathieuPortrait = "/team/mathieu-lariviere-black-shirt.png";
+const elisePortrait = "/team/elise-bibeau-professional.png";
+const yanickPortrait = "/team/yanick-grenier-antonacci-professional-v2.png";
+
 const architectureVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/super_cinematic%2C_slow_pan_202607221517.mp4";
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Papers_in_slow_pan_202607230939.mp4";
 const constructionVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/IMG_3004.mov";
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Construction_worker_framing_atti%E2%80%A6_202607230944.mp4";
 const excavationVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/IMG_2222.mov";
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Excavation.mp4.mov";
+
+const frServiceSubcategories = {
+  architecture: [
+    "Plans résidentiels et commerciaux",
+    "Conception sur mesure",
+    "Agrandissements",
+    "Optimisation des espaces",
+    "Modélisation 3D et rendus",
+    "Demandes de permis",
+    "Coordination avec les ingénieurs",
+    "Design intérieur et choix des matériaux",
+    "Accompagnement en gestion de projet",
+  ],
+  construction: [
+    "Construction neuve",
+    "Rénovation résidentielle",
+    "Rénovation commerciale",
+    "Projets clé en main",
+    "Agrandissements",
+    "Finition intérieure",
+    "Revêtement extérieur",
+    "Toiture",
+    "Portes et fenêtres",
+    "Cuisine et salle de bain",
+    "Charpente",
+    "Gestion de chantier",
+  ],
+  excavation: [
+    "Excavation résidentielle",
+    "Excavation commerciale",
+    "Nivellement de terrain",
+    "Fondation",
+    "Drain français",
+    "Entrée de services (aqueduc et égout)",
+    "Terrassement",
+    "Transport de matériaux",
+    "Démolition",
+    "Déboisement",
+    "Préparation de terrain",
+    "Remblayage et compaction",
+    "Location d’équipement avec opérateur",
+  ],
+} satisfies Record<ServiceKey, string[]>;
+
+const enServiceSubcategories = {
+  architecture: [
+    "Residential and commercial plans",
+    "Custom design",
+    "Additions",
+    "Space optimization",
+    "3D modelling and renderings",
+    "Permit applications",
+    "Coordination with engineers",
+    "Interior design and material selection",
+    "Project management support",
+  ],
+  construction: [
+    "New construction",
+    "Residential renovation",
+    "Commercial renovation",
+    "Turnkey projects",
+    "Additions",
+    "Interior finishing",
+    "Exterior cladding",
+    "Roofing",
+    "Doors and windows",
+    "Kitchens and bathrooms",
+    "Framing",
+    "Site management",
+  ],
+  excavation: [
+    "Residential excavation",
+    "Commercial excavation",
+    "Site grading",
+    "Foundations",
+    "French drains",
+    "Utility service connections (water and sewer)",
+    "Earthwork",
+    "Material transport",
+    "Demolition",
+    "Land clearing",
+    "Site preparation",
+    "Backfilling and compaction",
+    "Equipment rental with operator",
+  ],
+} satisfies Record<ServiceKey, string[]>;
 
 const dictionaries = {
   fr: {
@@ -60,15 +156,25 @@ const dictionaries = {
         description:
           "Découvrez une sélection de réalisations Groupe Pure et l'approche de direction intégrée derrière chaque chantier.",
       },
-      about: {
-        title: "À propos | Groupe Pure",
+      team: {
+        title: "Notre équipe | Groupe Pure",
         description:
-          "Une firme clé en main qui réunit architecture, construction et excavation avec rigueur, cohérence et crédibilité APCHQ/RBQ.",
+          "Découvrez l’équipe qui coordonne les projets d’architecture, de construction et d’excavation de Groupe Pure.",
       },
       contact: {
         title: "Contact | Groupe Pure",
         description:
           "Contactez Groupe Pure pour discuter d'un projet d'architecture, de construction ou d'excavation.",
+      },
+      privacy: {
+        title: "Politique de confidentialité",
+        description:
+          "Consultez la politique de confidentialité du site de Groupe Pure.",
+      },
+      terms: {
+        title: "Conditions d’utilisation",
+        description:
+          "Consultez les conditions d’utilisation du site de Groupe Pure.",
       },
     },
     header: {
@@ -83,7 +189,7 @@ const dictionaries = {
         { href: "/", label: "Accueil" },
         { href: "/services", label: "Services" },
         { href: "/projects", label: "Projets" },
-        { href: "/about", label: "À propos" },
+        { href: "/team", label: "Notre équipe" },
         { href: "/contact", label: "Contact" },
       ],
     },
@@ -95,8 +201,11 @@ const dictionaries = {
       rbqCaption: "RBQ 5773-2182-01",
       apchqAlt: "APCHQ",
       googleAlt: "Google",
+      mapTitle: "Carte de l’adresse de Groupe Pure à Longueuil",
       logoAlt: "Groupe Pure Logo",
       copyright: "Groupe Pure Construction Inc.",
+      privacy: "Confidentialité",
+      terms: "Conditions d’utilisation",
       social: {
         instagram: "Instagram",
         facebook: "Facebook",
@@ -107,63 +216,20 @@ const dictionaries = {
       heroLead:
         "Groupe Pure accompagne les projets ambitieux de leur première intention jusqu'à leur livraison finale, avec une même exigence : créer, bâtir et livrer avec précision.",
       servicesTitle: "Du premier trait à la dernière finition.",
-      ratingCount: "(13)",
-      technicalTitle:
-        "Des travaux techniques, intégrés à une vision complète.",
-      technicalBody:
-        "Certains projets commencent par une intention architecturale. D'autres par un problème plus concret : infiltration, fondation, drainage, excavation ou accès au bâtiment. Groupe Pure aborde ces réalités avec la même discipline, pour que les travaux invisibles soutiennent réellement la qualité du résultat final.",
-      technicalCategories: [
-        {
-          title: "Fondations",
-          body: "Fissures, imperméabilisation, infiltration, sous-sol.",
-        },
-        {
-          title: "Terrain",
-          body: "Excavation, drainage, entrée d'eau, margelles.",
-        },
-        {
-          title: "Extérieur",
-          body: "Béton, murets, pavé-uni, balcons, patios.",
-        },
-        {
-          title: "Projet complet",
-          body: "Conception, coordination, construction, livraison.",
-        },
+      googleReviewsLabel: "Avis sur Google Maps",
+      territoryTitle: "Entrepreneur général et spécialisé.",
+      territoryRegionsLabel: "Zone de service",
+      territoryRegions: "Boucherville, Rive-Sud, Montréal",
+      openingHoursLabel: "Heures d’ouverture",
+      openingHours: [
+        { day: "Lundi", hours: "08:00–16:00" },
+        { day: "Mardi", hours: "08:00–16:00" },
+        { day: "Mercredi", hours: "08:00–16:00" },
+        { day: "Jeudi", hours: "08:00–16:00" },
+        { day: "Vendredi", hours: "08:00–16:00" },
       ],
-      processTitle: "Une méthode claire avant le chantier.",
-      processSteps: [
-        {
-          title: "Comprendre le lieu",
-          body: "On cerne les contraintes, les priorités et l'état réel du bâtiment ou du terrain.",
-        },
-        {
-          title: "Cadrer les travaux",
-          body: "On définit les interventions nécessaires, l'ordre logique et les responsabilités.",
-        },
-        {
-          title: "Coordonner l'exécution",
-          body: "Les décisions terrain sont suivies avec une vue d'ensemble du projet.",
-        },
-        {
-          title: "Livrer proprement",
-          body: "Le résultat doit être solide, cohérent et fidèle à l'intention initiale.",
-        },
-      ],
-      territoryTitle:
-        "Basés à Longueuil, présents sur la Rive-Sud et à Montréal.",
-      territoryBody:
-        "Groupe Pure intervient principalement à Longueuil, en Montérégie et dans plusieurs secteurs de Montréal, selon la nature du mandat et l'ampleur des travaux.",
-      territoryRegions:
-        "Longueuil · Montréal · Rive-Sud · Montérégie · Vallée-du-Richelieu · Haut-Richelieu",
-      credibilityTitle: "Une réputation bâtie sur l'exécution.",
-      credibilityBody:
-        "Les clients recherchent une équipe capable de comprendre le projet, de cadrer les travaux et de livrer avec rigueur. Groupe Pure est présent sur des plateformes vérifiées et détient une licence RBQ active.",
-      credibilityItems: [
-        "RBQ 5773-2182-01",
-        "Membre APCHQ",
-        "Basés à Longueuil",
-        "Avis vérifiés disponibles",
-      ],
+      appointmentNote:
+        "Veuillez prendre rendez-vous avant de vous présenter sur place.",
       aboutEyebrow: "Projets clé en main",
       aboutTitle: "Une seule firme. Du début à la fin.",
       aboutBody: [
@@ -183,12 +249,7 @@ const dictionaries = {
         lead: "Nous transformons vos intentions en plans clairs, réfléchis et adaptés à la façon dont chaque lieu sera réellement habité.",
         detail:
           "L'équipe traduit les besoins, les contraintes et l'ambition du projet en une direction architecturale cohérente, prête à guider les étapes techniques et le chantier.",
-        examples: [
-          "Plans",
-          "Conception",
-          "Coordination technique",
-          "Accompagnement des décisions",
-        ],
+        examples: frServiceSubcategories.architecture,
         image: serviceImages.architecture,
         imageAlt: "Intérieur architectural contemporain",
         video: architectureVideo,
@@ -199,12 +260,7 @@ const dictionaries = {
         lead: "Nos équipes coordonnent chaque étape du chantier avec rigueur, pour que l'exécution reste fidèle à la vision initiale.",
         detail:
           "Planification, coordination des corps de métier, suivi de qualité et décisions terrain sont gérés avec une lecture globale du résultat attendu.",
-        examples: [
-          "Rénovation d'espaces de vie",
-          "Agrandissements",
-          "Balcons et patios",
-          "Béton et finitions",
-        ],
+        examples: frServiceSubcategories.construction,
         image: serviceImages.construction,
         imageAlt: "Résidence contemporaine en construction",
         video: constructionVideo,
@@ -215,13 +271,7 @@ const dictionaries = {
         lead: "Nous préparons le terrain avec précision afin que les fondations du projet soient solides, propres et prêtes pour la suite.",
         detail:
           "Préparation de site, excavation, drainage et travaux préliminaires sont intégrés au calendrier du projet pour éviter les ruptures entre conception et exécution.",
-        examples: [
-          "Drain français",
-          "Imperméabilisation",
-          "Fissures et infiltration",
-          "Entrée d'eau et margelles",
-          "Ponceaux",
-        ],
+        examples: frServiceSubcategories.excavation,
         image: serviceImages.excavation,
         imageAlt: "Terrain préparé pour un chantier haut de gamme",
         video: excavationVideo,
@@ -295,36 +345,101 @@ const dictionaries = {
       eyebrow: "Projets",
       title: "Des réalisations sobres, solides et précisément coordonnées.",
       lead: "Chaque projet présenté ici reflète la même méthode : une intention claire, une direction constante et une exécution attentive aux détails.",
-      note:
-        "Les fiches détaillées arrivent bientôt. Cette sélection présente déjà l'étendue des mandats et la qualité de l'approche Groupe Pure.",
     },
-    aboutPage: {
-      eyebrow: "À propos",
-      title: "Une firme clé en main pour garder le projet entier.",
-      lead: "Groupe Pure réunit architecture, construction et excavation afin que les décisions importantes restent alignées du début à la fin.",
-      sections: [
+    teamPage: {
+      eyebrow: "Notre équipe",
+      title: "Des expertises complémentaires, une même direction.",
+      lead: "Derrière chaque projet, une équipe engagée rassemble la vision, la technique et le chantier pour faire avancer chaque décision avec clarté.",
+      aboutTitle: "À propos",
+      aboutBody:
+        "Groupe Pure réunit architecture, construction et excavation sous une même direction afin de préserver la cohérence de chaque projet, de la première intention à la livraison finale. Notre approche clé en main conjugue une vision claire, une exécution rigoureuse et une expertise terrain reconnue pour réaliser des projets corporatifs, commerciaux et résidentiels haut de gamme.",
+      members: [
         {
-          title: "Direction intégrée",
-          body: "Une seule équipe coordonne la vision, les priorités, les contraintes et le chantier. Les décisions sont plus claires parce qu'elles sont prises avec une compréhension complète du projet.",
+          name: "Yanick Grenier-Antonacci",
+          title: "Direction de projets",
+          image: yanickPortrait,
+          imageAlt: "Portrait de Yanick Grenier-Antonacci",
         },
         {
-          title: "Qualité mesurable",
-          body: "Les matériaux, les détails et les méthodes d'exécution sont suivis avec rigueur. L'objectif est simple : livrer un résultat durable, propre et fidèle à l'intention initiale.",
+          name: "Maude Desormeaux",
+          title: "Coordination de projets",
+          image: maudePortrait,
+          imageAlt: "Portrait de Maude Desormeaux",
         },
         {
-          title: "Crédibilité terrain",
-          body: "Membre APCHQ et titulaire RBQ, Groupe Pure travaille avec les standards attendus pour des projets corporatifs, commerciaux et résidentiels haut de gamme.",
+          name: "Félix Deland",
+          title: "Technologie de l’architecture",
+          image: teamPortraits[1],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "Shannon Matte",
+          title: "Membre de l’équipe",
+          image: teamPortraits[0],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "Thomas Sawadogo",
+          title: "Membre de l’équipe",
+          image: teamPortraits[2],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "Mathis Houde",
+          title: "Membre de l’équipe",
+          image: teamPortraits[1],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "Chloé Lavallée",
+          title: "Membre de l’équipe",
+          image: teamPortraits[0],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "André Santos",
+          title: "Membre de l’équipe",
+          image: teamPortraits[2],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "William Tremblay",
+          title: "Membre de l’équipe",
+          image: teamPortraits[1],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "Yvon Racine",
+          title: "Membre de l’équipe",
+          image: teamPortraits[0],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+        },
+        {
+          name: "Mathieu Larivière",
+          title: "Membre de l’équipe",
+          image: mathieuPortrait,
+          imageAlt: "Portrait de Mathieu Larivière",
+        },
+        {
+          name: "Élise Bibeau",
+          title: "Membre de l’équipe",
+          image: elisePortrait,
+          imageAlt: "Portrait d’Élise Bibeau",
+        },
+        {
+          name: "Daniel Nduwimana",
+          title: "Conception Web",
+          image: teamPortraits[1],
+          imageAlt: "Portrait temporaire d’un membre de l’équipe",
         },
       ],
-      sectorsTitle: "Secteurs servis",
-      sectors: ["Corporatif", "Commercial", "Résidentiel haut de gamme"],
     },
     contactPage: {
       eyebrow: "Contact",
       title: "Commençons par cadrer votre projet.",
       lead: "Envoyez-nous les grandes lignes. Le formulaire prépare un courriel avec vos informations afin que vous puissiez l'envoyer depuis votre boîte mail.",
       directTitle: "Coordonnées directes",
-      formTitle: "Votre demande",
+      buildingAlt: "Bureaux de Groupe Pure à Longueuil",
     },
     form: {
       name: "Nom",
@@ -332,7 +447,13 @@ const dictionaries = {
       phone: "Téléphone",
       projectType: "Type de chantier",
       projectTypePlaceholder: "Sélectionner un type",
+      subcategory: "Sous-catégorie",
+      subcategoryPlaceholder: "Sélectionner une sous-catégorie",
+      subcategoryDisabledPlaceholder: "Choisir d'abord un type de chantier",
+      budgetRange: "Budget prévu",
+      budgetRangePlaceholder: "Sélectionner une tranche de budget",
       message: "Message",
+      attachment: "Pièce jointe",
       submit: "Préparer le courriel",
       required: "Ce champ est requis.",
       invalidEmail: "Entrez une adresse courriel valide.",
@@ -343,12 +464,26 @@ const dictionaries = {
         construction: "Construction",
         excavation: "Excavation",
       },
+      subcategoryOptions: frServiceSubcategories,
+      budgetOptions: [
+        "Moins de 25 000 $",
+        "25 000 $ à 50 000 $",
+        "50 000 $ à 100 000 $",
+        "100 000 $ à 250 000 $",
+        "250 000 $ à 500 000 $",
+        "500 000 $ à 1 M$",
+        "1 M$ et plus",
+        "À déterminer",
+      ],
       emailSubject: "Nouvelle demande de projet",
       emailBodyLabels: {
         name: "Nom",
         email: "Courriel",
         phone: "Téléphone",
         projectType: "Type de chantier",
+        subcategory: "Sous-catégorie",
+        budgetRange: "Budget prévu",
+        attachment: "Pièce jointe à ajouter",
         message: "Message",
       },
     },
@@ -371,15 +506,23 @@ const dictionaries = {
         description:
           "Explore selected Groupe Pure projects and the integrated direction behind each build.",
       },
-      about: {
-        title: "About | Groupe Pure",
+      team: {
+        title: "Our team | Groupe Pure",
         description:
-          "A turnkey firm bringing together architecture, construction and excavation with discipline, cohesion and APCHQ/RBQ credibility.",
+          "Meet the team coordinating Groupe Pure architecture, construction and excavation projects.",
       },
       contact: {
         title: "Contact | Groupe Pure",
         description:
           "Contact Groupe Pure to discuss an architecture, construction or excavation project.",
+      },
+      privacy: {
+        title: "Privacy policy",
+        description: "Read the privacy policy for the Groupe Pure website.",
+      },
+      terms: {
+        title: "Terms of use",
+        description: "Read the terms of use for the Groupe Pure website.",
       },
     },
     header: {
@@ -394,7 +537,7 @@ const dictionaries = {
         { href: "/", label: "Home" },
         { href: "/services", label: "Services" },
         { href: "/projects", label: "Projects" },
-        { href: "/about", label: "About" },
+        { href: "/team", label: "Our team" },
         { href: "/contact", label: "Contact" },
       ],
     },
@@ -406,8 +549,11 @@ const dictionaries = {
       rbqCaption: "RBQ 5773-2182-01",
       apchqAlt: "APCHQ",
       googleAlt: "Google",
+      mapTitle: "Map of Groupe Pure’s Longueuil address",
       logoAlt: "Groupe Pure Logo",
       copyright: "Groupe Pure Construction Inc.",
+      privacy: "Privacy",
+      terms: "Terms of use",
       social: {
         instagram: "Instagram",
         facebook: "Facebook",
@@ -418,62 +564,20 @@ const dictionaries = {
       heroLead:
         "Groupe Pure guides ambitious projects from their first intent through final delivery, with one standard: create, build and deliver with precision.",
       servicesTitle: "From the first line to the final finish.",
-      ratingCount: "(13)",
-      technicalTitle: "Technical work, integrated into a complete vision.",
-      technicalBody:
-        "Some projects begin with an architectural intent. Others begin with a more concrete problem: infiltration, foundation, drainage, excavation or building access. Groupe Pure approaches these realities with the same discipline, so the invisible work truly supports the quality of the final result.",
-      technicalCategories: [
-        {
-          title: "Foundations",
-          body: "Cracks, waterproofing, infiltration, basement.",
-        },
-        {
-          title: "Site",
-          body: "Excavation, drainage, water entry, window wells.",
-        },
-        {
-          title: "Exterior",
-          body: "Concrete, retaining walls, pavers, balconies, patios.",
-        },
-        {
-          title: "Complete project",
-          body: "Design, coordination, construction, delivery.",
-        },
+      googleReviewsLabel: "Reviews on Google Maps",
+      territoryTitle: "General and specialized contractor.",
+      territoryRegionsLabel: "Service area",
+      territoryRegions: "Boucherville, South Shore, Montreal",
+      openingHoursLabel: "Opening hours",
+      openingHours: [
+        { day: "Monday", hours: "08:00–16:00" },
+        { day: "Tuesday", hours: "08:00–16:00" },
+        { day: "Wednesday", hours: "08:00–16:00" },
+        { day: "Thursday", hours: "08:00–16:00" },
+        { day: "Friday", hours: "08:00–16:00" },
       ],
-      processTitle: "A clear method before the build.",
-      processSteps: [
-        {
-          title: "Understand the place",
-          body: "We identify constraints, priorities and the real condition of the building or site.",
-        },
-        {
-          title: "Frame the work",
-          body: "We define the required interventions, the logical sequence and the responsibilities.",
-        },
-        {
-          title: "Coordinate execution",
-          body: "Field decisions are followed with a complete view of the project.",
-        },
-        {
-          title: "Deliver cleanly",
-          body: "The result must be solid, coherent and faithful to the initial intent.",
-        },
-      ],
-      territoryTitle:
-        "Based in Longueuil, present on the South Shore and in Montreal.",
-      territoryBody:
-        "Groupe Pure works primarily in Longueuil, Monteregie and several areas of Montreal, depending on the nature of the mandate and the scale of the work.",
-      territoryRegions:
-        "Longueuil · Montreal · South Shore · Monteregie · Richelieu Valley · Haut-Richelieu",
-      credibilityTitle: "A reputation built on execution.",
-      credibilityBody:
-        "Clients look for a team capable of understanding the project, framing the work and delivering with discipline. Groupe Pure is present on verified platforms and holds an active RBQ licence.",
-      credibilityItems: [
-        "RBQ 5773-2182-01",
-        "APCHQ member",
-        "Based in Longueuil",
-        "Verified reviews available",
-      ],
+      appointmentNote:
+        "Please make an appointment before visiting us in person.",
       aboutEyebrow: "Turnkey projects",
       aboutTitle: "One firm. From beginning to end.",
       aboutBody: [
@@ -492,12 +596,7 @@ const dictionaries = {
         lead: "We turn your intent into clear, thoughtful plans shaped around how each place will actually be used.",
         detail:
           "The team translates needs, constraints and ambition into a coherent architectural direction ready to guide technical steps and site execution.",
-        examples: [
-          "Plans",
-          "Design",
-          "Technical coordination",
-          "Decision guidance",
-        ],
+        examples: enServiceSubcategories.architecture,
         image: serviceImages.architecture,
         imageAlt: "Contemporary architectural interior",
         video: architectureVideo,
@@ -508,12 +607,7 @@ const dictionaries = {
         lead: "Our teams coordinate each stage of the build with discipline, keeping execution faithful to the initial vision.",
         detail:
           "Planning, trade coordination, quality control and field decisions are managed with a complete view of the expected result.",
-        examples: [
-          "Living spaces",
-          "Extensions",
-          "Balconies and patios",
-          "Concrete and finishes",
-        ],
+        examples: enServiceSubcategories.construction,
         image: serviceImages.construction,
         imageAlt: "Contemporary residence under construction",
         video: constructionVideo,
@@ -524,12 +618,7 @@ const dictionaries = {
         lead: "We prepare the ground with precision so the project's foundations are solid, clean and ready for what follows.",
         detail:
           "Site preparation, excavation, drainage and preliminary work are integrated into the project schedule to avoid gaps between design and execution.",
-        examples: [
-          "French drains",
-          "Foundation",
-          "Cracks",
-          "Water entry and window wells",
-        ],
+        examples: enServiceSubcategories.excavation,
         image: serviceImages.excavation,
         imageAlt: "Prepared site for a high-end build",
         video: excavationVideo,
@@ -603,36 +692,101 @@ const dictionaries = {
       eyebrow: "Projects",
       title: "Restrained, solid and precisely coordinated work.",
       lead: "Each project shown here reflects the same method: clear intent, steady direction and execution attentive to detail.",
-      note:
-        "Detailed case studies are coming soon. This selection already shows the range of mandates and the quality of Groupe Pure's approach.",
     },
-    aboutPage: {
-      eyebrow: "About",
-      title: "A turnkey firm that keeps the project whole.",
-      lead: "Groupe Pure brings architecture, construction and excavation together so important decisions stay aligned from beginning to end.",
-      sections: [
+    teamPage: {
+      eyebrow: "Our team",
+      title: "Complementary expertise, one shared direction.",
+      lead: "Behind every project, a committed team brings vision, technical thinking and field execution together so each decision moves forward clearly.",
+      aboutTitle: "About",
+      aboutBody:
+        "Groupe Pure brings architecture, construction and excavation together under one direction to preserve the cohesion of every project, from first intent to final delivery. Our turnkey approach combines clear vision, disciplined execution and recognized field expertise to deliver corporate, commercial and high-end residential projects.",
+      members: [
         {
-          title: "Integrated direction",
-          body: "One team coordinates the vision, priorities, constraints and build. Decisions become clearer because they are made with a complete understanding of the project.",
+          name: "Yanick Grenier-Antonacci",
+          title: "Project direction",
+          image: yanickPortrait,
+          imageAlt: "Portrait of Yanick Grenier-Antonacci",
         },
         {
-          title: "Measurable quality",
-          body: "Materials, details and execution methods are tracked with discipline. The goal is simple: deliver a durable, clean result faithful to the initial intent.",
+          name: "Maude Desormeaux",
+          title: "Project coordination",
+          image: maudePortrait,
+          imageAlt: "Portrait of Maude Desormeaux",
         },
         {
-          title: "Field credibility",
-          body: "As an APCHQ member and RBQ licence holder, Groupe Pure works to the standards expected for corporate, commercial and high-end residential projects.",
+          name: "Félix Deland",
+          title: "Architectural technology",
+          image: teamPortraits[1],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "Shannon Matte",
+          title: "Team member",
+          image: teamPortraits[0],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "Thomas Sawadogo",
+          title: "Team member",
+          image: teamPortraits[2],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "Mathis Houde",
+          title: "Team member",
+          image: teamPortraits[1],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "Chloé Lavallée",
+          title: "Team member",
+          image: teamPortraits[0],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "André Santos",
+          title: "Team member",
+          image: teamPortraits[2],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "William Tremblay",
+          title: "Team member",
+          image: teamPortraits[1],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "Yvon Racine",
+          title: "Team member",
+          image: teamPortraits[0],
+          imageAlt: "Temporary portrait of a team member",
+        },
+        {
+          name: "Mathieu Larivière",
+          title: "Team member",
+          image: mathieuPortrait,
+          imageAlt: "Portrait of Mathieu Larivière",
+        },
+        {
+          name: "Élise Bibeau",
+          title: "Team member",
+          image: elisePortrait,
+          imageAlt: "Portrait of Élise Bibeau",
+        },
+        {
+          name: "Daniel Nduwimana",
+          title: "Web Design",
+          image: teamPortraits[1],
+          imageAlt: "Temporary portrait of a team member",
         },
       ],
-      sectorsTitle: "Sectors served",
-      sectors: ["Corporate", "Commercial", "High-end residential"],
     },
     contactPage: {
       eyebrow: "Contact",
       title: "Let's start by framing your project.",
       lead: "Send us the broad strokes. The form prepares an email with your information so you can send it from your own mailbox.",
       directTitle: "Direct contact",
-      formTitle: "Your request",
+      buildingAlt: "Groupe Pure offices in Longueuil",
     },
     form: {
       name: "Name",
@@ -640,7 +794,13 @@ const dictionaries = {
       phone: "Phone",
       projectType: "Project type",
       projectTypePlaceholder: "Select a type",
+      subcategory: "Sub-category",
+      subcategoryPlaceholder: "Select a sub-category",
+      subcategoryDisabledPlaceholder: "Select a project type first",
+      budgetRange: "Estimated budget",
+      budgetRangePlaceholder: "Select a budget range",
       message: "Message",
+      attachment: "Attachment",
       submit: "Prepare email",
       required: "This field is required.",
       invalidEmail: "Enter a valid email address.",
@@ -651,12 +811,26 @@ const dictionaries = {
         construction: "Construction",
         excavation: "Excavation",
       },
+      subcategoryOptions: enServiceSubcategories,
+      budgetOptions: [
+        "Under $25,000",
+        "$25,000–$50,000",
+        "$50,000–$100,000",
+        "$100,000–$250,000",
+        "$250,000–$500,000",
+        "$500,000–$1M",
+        "$1M and above",
+        "To be determined",
+      ],
       emailSubject: "New project inquiry",
       emailBodyLabels: {
         name: "Name",
         email: "Email",
         phone: "Phone",
         projectType: "Project type",
+        subcategory: "Sub-category",
+        budgetRange: "Estimated budget",
+        attachment: "Attachment to add",
         message: "Message",
       },
     },

@@ -69,13 +69,16 @@ export default async function RootLayout({
       <body className="flex min-h-full flex-col">
         <SiteHeader
           lang={lang}
-          logo={assets.logo}
-          phoneLabel={contact.phoneLabel}
-          phoneHref={contact.phoneHref}
+          logo={assets.headerLogo}
           labels={dict.header}
         />
         {children}
-        <Footer dict={dict} contact={contact} logo={assets.logo} />
+        <Footer
+          dict={dict}
+          contact={contact}
+          lang={lang}
+          logo={assets.logo}
+        />
       </body>
     </html>
   );

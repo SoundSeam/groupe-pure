@@ -13,8 +13,6 @@ type HeaderLink = {
 type SiteHeaderProps = {
   lang: "en" | "fr";
   logo: string;
-  phoneLabel: string;
-  phoneHref: string;
   labels: {
     homeLabel: string;
     navLabel: string;
@@ -45,8 +43,6 @@ function equivalentLanguageHref(pathname: string, nextLang: "en" | "fr") {
 export default function SiteHeader({
   lang,
   logo,
-  phoneLabel,
-  phoneHref,
   labels,
 }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -116,10 +112,10 @@ export default function SiteHeader({
           >
             <Image
               src={logo}
-              width={128}
-              height={128}
+              width={1724}
+              height={513}
               alt="Groupe Pure Logo"
-              className="h-8 w-8"
+              className="h-8 w-auto"
             />
           </Link>
           <nav
@@ -138,9 +134,6 @@ export default function SiteHeader({
           </nav>
         </div>
         <div className="hidden shrink-0 items-center gap-4 lg:flex">
-          <a href={phoneHref} className="text-sm font-medium text-white">
-            {phoneLabel}
-          </a>
           <Link
             href={otherLangHref}
             hrefLang={otherLang}
@@ -151,7 +144,7 @@ export default function SiteHeader({
           </Link>
           <Link
             href={localizedHref(lang, "/contact")}
-            className="rounded-xl bg-white px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-white/90"
+            className="rounded-xl bg-[#e4c58f] px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
           >
             {labels.startProject}
           </Link>
@@ -193,13 +186,6 @@ export default function SiteHeader({
                 ))}
               </nav>
               <div className="mt-2 border-t border-white/10 pt-2">
-                <a
-                  href={phoneHref}
-                  className="block rounded-lg px-3 py-3 text-sm font-medium text-white transition hover:bg-white/8"
-                  onClick={closeMenu}
-                >
-                  {phoneLabel}
-                </a>
                 <Link
                   href={otherLangHref}
                   hrefLang={otherLang}
@@ -211,7 +197,7 @@ export default function SiteHeader({
                 </Link>
                 <Link
                   href={localizedHref(lang, "/contact")}
-                  className="mt-2 block rounded-xl bg-white px-5 py-3 text-center text-sm font-medium text-[#101211] transition hover:bg-white/90"
+                  className="mt-2 block rounded-xl bg-[#e4c58f] px-5 py-3 text-center text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
                   onClick={closeMenu}
                 >
                   {labels.startProject}
