@@ -57,6 +57,7 @@ export default async function Home({
 
   const dict = await getDictionary(lang);
   const locale = lang as Locale;
+  const fullSiteEnabled = process.env.FULL_SITE_ENABLED === "true";
   const homeFormLabels = {
     ...dict.form,
     submit: dict.home.contactButton,
@@ -91,11 +92,13 @@ export default async function Home({
             <p className="mt-6 max-w-xl text-lg font-light leading-8 text-white/70 [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] sm:text-xl">
               {dict.home.heroLead}
             </p>
-            <div className="mt-10">
-              <PrimaryButton href={getLocalizedPath(locale, "/contact")}>
-                {dict.common.startProject}
-              </PrimaryButton>
-            </div>
+            {fullSiteEnabled ? (
+              <div className="mt-10">
+                <PrimaryButton href={getLocalizedPath(locale, "/contact")}>
+                  {dict.common.startProject}
+                </PrimaryButton>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

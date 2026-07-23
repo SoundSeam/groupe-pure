@@ -208,6 +208,7 @@ export function ProjectCard({
 export function Footer({
   dict,
   contact,
+  fullSiteEnabled,
   lang,
   logo,
 }: {
@@ -218,6 +219,7 @@ export function Footer({
     email: string;
     address: string;
   };
+  fullSiteEnabled: boolean;
   lang: Locale;
   logo: string;
 }) {
@@ -268,23 +270,25 @@ export function Footer({
           <p className="mt-6 w-fit text-sm font-normal text-white/78">
             © {currentYear} {dict.common.copyright}
           </p>
-          <nav
-            aria-label={`${dict.common.privacy} / ${dict.common.terms}`}
-            className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-white/55"
-          >
-            <Link
-              href={getLocalizedPath(lang, "/privacy")}
-              className="transition hover:text-white"
+          {fullSiteEnabled ? (
+            <nav
+              aria-label={`${dict.common.privacy} / ${dict.common.terms}`}
+              className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-white/55"
             >
-              {dict.common.privacy}
-            </Link>
-            <Link
-              href={getLocalizedPath(lang, "/terms")}
-              className="transition hover:text-white"
-            >
-              {dict.common.terms}
-            </Link>
-          </nav>
+              <Link
+                href={getLocalizedPath(lang, "/privacy")}
+                className="transition hover:text-white"
+              >
+                {dict.common.privacy}
+              </Link>
+              <Link
+                href={getLocalizedPath(lang, "/terms")}
+                className="transition hover:text-white"
+              >
+                {dict.common.terms}
+              </Link>
+            </nav>
+          ) : null}
         </div>
 
         <div className="inline-flex w-fit flex-col items-start self-end lg:items-end lg:justify-self-end">

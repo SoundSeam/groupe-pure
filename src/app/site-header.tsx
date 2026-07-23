@@ -11,6 +11,7 @@ type HeaderLink = {
 };
 
 type SiteHeaderProps = {
+  fullSiteEnabled: boolean;
   lang: "en" | "fr";
   logo: string;
   labels: {
@@ -41,6 +42,7 @@ function equivalentLanguageHref(pathname: string, nextLang: "en" | "fr") {
 }
 
 export default function SiteHeader({
+  fullSiteEnabled,
   lang,
   logo,
   labels,
@@ -118,20 +120,22 @@ export default function SiteHeader({
               className="h-8 w-auto"
             />
           </Link>
-          <nav
-            aria-label={labels.navLabel}
-            className="hidden items-center gap-1 text-sm font-medium text-white/78 lg:flex"
-          >
-            {labels.links.map((link) => (
-              <Link
-                key={link.href}
-                href={localizedHref(lang, link.href)}
-                className="rounded-lg px-3 py-2 transition hover:bg-white/8 hover:text-white"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+          {fullSiteEnabled ? (
+            <nav
+              aria-label={labels.navLabel}
+              className="hidden items-center gap-1 text-sm font-medium text-white/78 lg:flex"
+            >
+              {labels.links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={localizedHref(lang, link.href)}
+                  className="rounded-lg px-3 py-2 transition hover:bg-white/8 hover:text-white"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          ) : null}
         </div>
         <div className="hidden shrink-0 items-center gap-4 lg:flex">
           <Link
@@ -142,29 +146,42 @@ export default function SiteHeader({
           >
             {otherLang}
           </Link>
-          <Link
-            href={localizedHref(lang, "/contact")}
-            className="rounded-xl bg-[#e4c58f] px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
-          >
-            {labels.startProject}
-          </Link>
+          {fullSiteEnabled ? (
+            <Link
+              href={localizedHref(lang, "/contact")}
+              className="rounded-xl bg-[#e4c58f] px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
+            >
+              {labels.startProject}
+            </Link>
+          ) : null}
         </div>
         <div className="relative lg:hidden">
-          <button
-            ref={menuButtonRef}
-            type="button"
-            aria-controls={menuId}
-            aria-expanded={isMenuOpen}
-            aria-label={isMenuOpen ? labels.closeMenu : labels.openMenu}
-            className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-xl transition hover:bg-white/8 aria-expanded:bg-white/8"
-            onClick={() => setIsMenuOpen((open) => !open)}
-          >
-            <span className="h-px w-5 bg-white" />
-            <span className="h-px w-5 bg-white" />
-            <span className="h-px w-5 bg-white" />
-          </button>
+          {fullSiteEnabled ? (
+            <button
+              ref={menuButtonRef}
+              type="button"
+              aria-controls={menuId}
+              aria-expanded={isMenuOpen}
+              aria-label={isMenuOpen ? labels.closeMenu : labels.openMenu}
+              className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 rounded-xl transition hover:bg-white/8 aria-expanded:bg-white/8"
+              onClick={() => setIsMenuOpen((open) => !open)}
+            >
+              <span className="h-px w-5 bg-white" />
+              <span className="h-px w-5 bg-white" />
+              <span className="h-px w-5 bg-white" />
+            </button>
+          ) : (
+            <Link
+              href={otherLangHref}
+              hrefLang={otherLang}
+              aria-label={labels.languageLabel}
+              className="block rounded-lg px-3 py-2 text-sm font-medium uppercase text-white/78 transition hover:bg-white/8 hover:text-white"
+            >
+              {otherLang}
+            </Link>
+          )}
 
-          {isMenuOpen ? (
+          {fullSiteEnabled && isMenuOpen ? (
             <div
               ref={mobileMenuRef}
               id={menuId}

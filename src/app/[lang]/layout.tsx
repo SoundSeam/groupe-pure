@@ -63,11 +63,13 @@ export default async function RootLayout({
   }
 
   const dict = await getDictionary(lang);
+  const fullSiteEnabled = process.env.FULL_SITE_ENABLED === "true";
 
   return (
     <html lang={lang} className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <SiteHeader
+          fullSiteEnabled={fullSiteEnabled}
           lang={lang}
           logo={assets.headerLogo}
           labels={dict.header}
@@ -76,6 +78,7 @@ export default async function RootLayout({
         <Footer
           dict={dict}
           contact={contact}
+          fullSiteEnabled={fullSiteEnabled}
           lang={lang}
           logo={assets.logo}
         />
