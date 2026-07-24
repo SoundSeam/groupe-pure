@@ -462,6 +462,10 @@ const dictionaries = {
         "L’envoi n’a pas fonctionné. Vérifiez votre connexion et réessayez.",
       rateLimited:
         "Trop de demandes ont été envoyées récemment. Réessayez dans une heure.",
+      verificationError:
+        "La vérification de sécurité a expiré ou échoué. Réessayez.",
+      verificationUnavailable:
+        "La vérification de sécurité ne peut pas charger. Désactivez temporairement votre bloqueur de contenu ou écrivez-nous directement.",
       success:
         "Merci — votre demande a bien été envoyée à notre équipe.",
       options: {
@@ -818,6 +822,10 @@ const dictionaries = {
         "The message could not be sent. Check your connection and try again.",
       rateLimited:
         "Too many inquiries were sent recently. Please try again in one hour.",
+      verificationError:
+        "The security verification expired or failed. Please try again.",
+      verificationUnavailable:
+        "The security verification could not load. Temporarily disable your content blocker or contact us directly.",
       success:
         "Thank you — your inquiry was sent to our team.",
       options: {

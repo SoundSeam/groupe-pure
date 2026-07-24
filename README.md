@@ -65,8 +65,8 @@ Attachments upload directly from the browser to the private
 Function then:
 
 - validates all fields again on the server;
-- enforces a five-submissions-per-hour IP rate limit;
-- rejects honeypot and unrealistically fast bot submissions;
+- applies atomic per-IP, per-email, and global rate windows;
+- silently absorbs honeypot submissions and quarantines ambiguous bot signals;
 - validates the uploaded file's size, declared MIME type, and file signature;
 - sends the file as a real email attachment and includes a seven-day private
   download link;
@@ -99,9 +99,17 @@ upload token.
 
    ```text
    RESEND_API_KEY=re_...
+   TURNSTILE_SECRET_KEY=...
+   TURNSTILE_ENFORCEMENT_MODE=shadow
    ```
 
-5. Deploy the function:
+5. Add the matching public widget key to the website environment:
+
+   ```text
+   NEXT_PUBLIC_TURNSTILE_SITE_KEY=...
+   ```
+
+6. Deploy the function:
 
    ```bash
    npx supabase functions deploy contact --no-verify-jwt
@@ -112,8 +120,16 @@ If another hostname needs to submit the form, set a comma-separated
 `CONTACT_ALLOWED_ORIGINS` Edge Function secret. `CONTACT_TO_EMAIL` and
 `CONTACT_FROM_EMAIL` may also override the defaults without code changes.
 
-The Resend key must never use a `NEXT_PUBLIC_` name or be added to the browser
+After both Turnstile keys have been deployed and tested, change
+`TURNSTILE_ENFORCEMENT_MODE` from `shadow` to `enforce`. The Turnstile secret
+and Resend key must never use a `NEXT_PUBLIC_` name or be added to the browser
 environment.
+
+The contact backend uses atomic per-IP, per-email, and global rate windows.
+Ambiguous traffic is marked `QUARANTINED` and still reaches the owner with an
+`[À VÉRIFIER]` subject; only high-confidence abuse is rejected. A scheduled
+cleanup removes abandoned attachments after 24 hours and sent attachments
+after 7 days.
 
 ## Learn More
 
