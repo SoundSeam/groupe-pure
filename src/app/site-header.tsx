@@ -103,7 +103,7 @@ export default function SiteHeader({
   }, [isMenuOpen]);
 
   return (
-    <header className="sticky top-0 z-50 bg-background">
+    <header className="sticky top-0 z-50 bg-background" data-cms-ignore>
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-6 sm:px-10">
         <div className="flex min-w-0 items-center gap-5">
           <Link

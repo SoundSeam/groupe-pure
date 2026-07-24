@@ -57,6 +57,64 @@ be overridden with `NEXT_PUBLIC_GOOGLE_MAPS_PLACE_ID` if the listing changes.
 The API key is intentionally delivered to the browser, so its website and API
 restrictions are required.
 
+## Contact form email delivery
+
+The contact form sends inquiries through a Supabase Edge Function and Resend.
+Attachments upload directly from the browser to the private
+`contact-attachments` bucket, avoiding Vercel's request-size limit. The Edge
+Function then:
+
+- validates all fields again on the server;
+- enforces a five-submissions-per-hour IP rate limit;
+- rejects honeypot and unrealistically fast bot submissions;
+- validates the uploaded file's size, declared MIME type, and file signature;
+- sends the file as a real email attachment and includes a seven-day private
+  download link;
+- uses Resend idempotency keys to prevent duplicate delivery on retries; and
+- stores the delivery state and Resend message ID in `contact_submissions`.
+
+Allowed attachments are PDF, Word, HEIC, JPEG, PNG, and WebP files up to 20 MB.
+The Storage bucket is private and the browser receives only a one-file signed
+upload token.
+
+### One-time Supabase and Resend setup
+
+1. In Resend, add and verify `groupepure.ca`. The default sender is
+   `Groupe Pure <website@groupepure.ca>` and the recipient is
+   `info@groupepure.ca`.
+2. Authenticate and link the Supabase CLI:
+
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref YOUR_PROJECT_REF
+   ```
+
+3. Apply the contact table and private Storage bucket migration:
+
+   ```bash
+   npx supabase db push
+   ```
+
+4. In **Supabase → Edge Functions → Secrets**, add:
+
+   ```text
+   RESEND_API_KEY=re_...
+   ```
+
+5. Deploy the function:
+
+   ```bash
+   npx supabase functions deploy contact --no-verify-jwt
+   ```
+
+The function already defaults to the production domains and local development.
+If another hostname needs to submit the form, set a comma-separated
+`CONTACT_ALLOWED_ORIGINS` Edge Function secret. `CONTACT_TO_EMAIL` and
+`CONTACT_FROM_EMAIL` may also override the defaults without code changes.
+
+The Resend key must never use a `NEXT_PUBLIC_` name or be added to the browser
+environment.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

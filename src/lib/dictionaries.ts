@@ -1,6 +1,6 @@
 import "server-only";
 
-import { projectImages } from "./site-data";
+import { projectImages, siteMedia } from "./site-data";
 import type { Locale } from "./i18n";
 
 type ServiceKey = "architecture" | "construction" | "excavation";
@@ -17,39 +17,35 @@ export type Service = {
 };
 
 export type Project = {
+  id?: string;
   title: string;
   image: string;
   imageAlt: string;
+  mediaType?: "image" | "video";
   type: string;
   location: string;
   summary: string;
 };
 
 const serviceImages = {
-  architecture:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/708488574_18007329599876233_7701415963308166788_n.jpeg",
-  construction:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jul+23%2C+2026%2C+03_00_23+PM.png",
-  excavation:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/excavationsevice.jpg",
+  architecture: siteMedia("services/architecture.webp"),
+  construction: siteMedia("services/construction.webp"),
+  excavation: siteMedia("services/excavation.webp"),
 };
 
 const teamPortraits = [
-  "/team/project-director-v2.png",
-  "/team/architectural-technologist-v2.png",
-  "/team/project-coordinator-v2.png",
+  siteMedia("team/project-director.webp"),
+  siteMedia("team/architectural-technologist.webp"),
+  siteMedia("team/project-coordinator.webp"),
 ] as const;
-const maudePortrait = "/team/maude-desormeaux-professional.png";
-const mathieuPortrait = "/team/mathieu-lariviere-black-shirt.png";
-const elisePortrait = "/team/elise-bibeau-professional.png";
-const yanickPortrait = "/team/yanick-grenier-antonacci-professional-v2.png";
+const maudePortrait = siteMedia("team/maude-desormeaux.webp");
+const mathieuPortrait = siteMedia("team/mathieu-lariviere.webp");
+const elisePortrait = siteMedia("team/elise-bibeau.webp");
+const yanickPortrait = siteMedia("team/yanick-grenier-antonacci.webp");
 
-const architectureVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Papers_in_slow_pan_202607230939.mp4";
-const constructionVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Construction_worker_framing_atti%E2%80%A6_202607230944.mp4";
-const excavationVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Excavation.mp4.mov";
+const architectureVideo = siteMedia("services/architecture.mp4");
+const constructionVideo = siteMedia("services/construction.mp4");
+const excavationVideo = siteMedia("services/excavation.mp4");
 
 const frServiceSubcategories = {
   architecture: [
@@ -437,7 +433,7 @@ const dictionaries = {
     contactPage: {
       eyebrow: "Contact",
       title: "Commençons par cadrer votre projet.",
-      lead: "Envoyez-nous les grandes lignes. Le formulaire prépare un courriel avec vos informations afin que vous puissiez l'envoyer depuis votre boîte mail.",
+      lead: "Envoyez-nous les grandes lignes de votre projet. Votre demande et vos documents seront transmis directement à notre équipe.",
       directTitle: "Coordonnées directes",
       buildingAlt: "Bureaux de Groupe Pure à Longueuil",
     },
@@ -454,11 +450,20 @@ const dictionaries = {
       budgetRangePlaceholder: "Sélectionner une tranche de budget",
       message: "Message",
       attachment: "Pièce jointe",
-      submit: "Préparer le courriel",
+      submit: "Envoyer ma demande",
+      sending: "Envoi en cours…",
       required: "Ce champ est requis.",
       invalidEmail: "Entrez une adresse courriel valide.",
+      invalidAttachment:
+        "Ajoutez un fichier PDF, Word, HEIC, JPG, PNG ou WebP valide.",
+      attachmentTooLarge:
+        "La pièce jointe doit peser 20 Mo ou moins.",
+      submissionError:
+        "L’envoi n’a pas fonctionné. Vérifiez votre connexion et réessayez.",
+      rateLimited:
+        "Trop de demandes ont été envoyées récemment. Réessayez dans une heure.",
       success:
-        "Votre application courriel va s'ouvrir avec un message préparé. Vous pourrez le relire avant l'envoi.",
+        "Merci — votre demande a bien été envoyée à notre équipe.",
       options: {
         architecture: "Architecture",
         construction: "Construction",
@@ -784,7 +789,7 @@ const dictionaries = {
     contactPage: {
       eyebrow: "Contact",
       title: "Let's start by framing your project.",
-      lead: "Send us the broad strokes. The form prepares an email with your information so you can send it from your own mailbox.",
+      lead: "Send us the broad strokes of your project. Your inquiry and documents will be delivered directly to our team.",
       directTitle: "Direct contact",
       buildingAlt: "Groupe Pure offices in Longueuil",
     },
@@ -801,11 +806,20 @@ const dictionaries = {
       budgetRangePlaceholder: "Select a budget range",
       message: "Message",
       attachment: "Attachment",
-      submit: "Prepare email",
+      submit: "Send my inquiry",
+      sending: "Sending…",
       required: "This field is required.",
       invalidEmail: "Enter a valid email address.",
+      invalidAttachment:
+        "Add a valid PDF, Word, HEIC, JPG, PNG or WebP file.",
+      attachmentTooLarge:
+        "The attachment must be 20 MB or smaller.",
+      submissionError:
+        "The message could not be sent. Check your connection and try again.",
+      rateLimited:
+        "Too many inquiries were sent recently. Please try again in one hour.",
       success:
-        "Your email app will open with a prepared message. You can review it before sending.",
+        "Thank you — your inquiry was sent to our team.",
       options: {
         architecture: "Architecture",
         construction: "Construction",

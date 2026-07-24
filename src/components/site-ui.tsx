@@ -96,6 +96,7 @@ export function ServiceCard({ service }: { service: Service }) {
                   ? "object-[center_40%]"
                   : ""
               }`}
+              data-cms-media-key={`media:home:service:${service.key}`}
               src={service.video}
               poster={service.image}
               autoPlay
@@ -134,13 +135,14 @@ export function ServiceFeature({ service, reverse = false }: { service: Service;
           alt={service.imageAlt}
           fill
           sizes="(min-width: 1024px) 45vw, 100vw"
+          data-cms-media-key={`media:services:${service.key}`}
           className={`object-cover ${
             service.key === "construction" || service.key === "excavation"
               ? "object-[center_40%]"
               : ""
           }`}
         />
-        <div className="absolute inset-0 bg-black/20" />
+        <div className="pointer-events-none absolute inset-0 bg-black/20" />
       </div>
       <div>
         <h2 className="text-3xl font-semibold text-white sm:text-5xl">
@@ -226,7 +228,7 @@ export function Footer({
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#101211] py-20">
+    <footer className="bg-[#101211] py-20" data-cms-ignore>
       <div className="mx-auto grid w-full max-w-7xl gap-16 px-6 sm:px-10 lg:grid-cols-2 lg:items-end">
         <div className="inline-flex w-fit flex-col items-start self-end lg:justify-self-start">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -326,7 +328,10 @@ export function CtaBand({
 }) {
   return (
     <SectionShell panel>
-      <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
+      <div
+        className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center"
+        data-cms-scope="shared:cta"
+      >
         <div>
           <h2 className="text-3xl font-semibold text-white sm:text-5xl">
             {title}

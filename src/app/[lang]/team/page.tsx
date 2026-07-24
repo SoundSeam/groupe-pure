@@ -48,7 +48,7 @@ export default async function TeamPage({
       />
       <SectionShell className="pt-0">
         <div className="grid gap-x-5 gap-y-[3.75rem] md:grid-cols-2 lg:grid-cols-3">
-          {dict.teamPage.members.map((member) => (
+          {dict.teamPage.members.map((member, index) => (
             <article key={member.name}>
               <div className="relative aspect-[4/3] overflow-hidden rounded-xl">
                 <Image
@@ -56,9 +56,10 @@ export default async function TeamPage({
                   alt={member.imageAlt}
                   fill
                   sizes="(min-width: 1024px) 30vw, (min-width: 768px) 46vw, 100vw"
+                  data-cms-media-key={`media:team:${index}`}
                   className="object-cover object-top grayscale"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/25" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/25" />
               </div>
               <div className="pt-8 sm:pt-10">
                 <h2 className="text-2xl font-semibold text-white">

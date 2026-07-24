@@ -1,0 +1,50 @@
+# Local Supabase configuration for the contact-form backend. The hosted project
+# reference is intentionally not committed; link it with `supabase link`.
+project_id = "groupe-pure"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[db.seed]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+inspector_port = 8083
+deno_version = 2
+
+# Publishable keys are not necessarily JWTs. The function validates the
+# supplied publishable key itself through @supabase/server.
+[functions.contact]
+verify_jwt = false
+entrypoint = "./functions/contact/index.ts"

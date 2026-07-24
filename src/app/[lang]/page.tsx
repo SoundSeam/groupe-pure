@@ -75,6 +75,8 @@ export default async function Home({
       <section className="relative flex min-h-[calc(100vh-4rem)] flex-col justify-end overflow-hidden rounded-b-[3rem] pb-16 text-left sm:pb-20">
         <video
           className="absolute inset-0 h-full w-full object-cover"
+          data-cms-media-key="media:home:hero"
+          poster={assets.heroPoster}
           autoPlay
           loop
           muted
@@ -83,7 +85,7 @@ export default async function Home({
         >
           <source src={assets.heroVideo} type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-[#101211]/70" />
+        <div className="pointer-events-none absolute inset-0 bg-[#101211]/70" />
         <div className="relative z-10 mx-auto flex w-full max-w-7xl items-end gap-8 px-6 sm:px-10">
           <div className="flex max-w-4xl flex-col items-start">
             <h1 className="text-4xl font-semibold text-white [text-shadow:0_3px_24px_rgba(0,0,0,0.55)] sm:text-6xl">
@@ -103,7 +105,7 @@ export default async function Home({
         </div>
       </section>
 
-      <div className="py-10 sm:py-12">
+      <div className="py-10 sm:py-12" data-cms-ignore>
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-x-8 gap-y-8 px-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-6 lg:gap-x-6">
           {partnerLogos.map((logo, index) => (
             <div
@@ -190,10 +192,11 @@ export default async function Home({
                 alt=""
                 fill
                 sizes="(min-width: 1024px) 40vw, 100vw"
+                data-cms-media-key="media:home:territory"
                 className="object-cover object-[center_70%]"
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
             <div className="absolute right-3 bottom-3 h-[34%] w-[48%] overflow-hidden rounded-lg bg-[#171a18] [box-shadow:0_0_32px_rgba(0,0,0,0.55)] sm:right-4 sm:bottom-4 sm:h-[32%] sm:w-[44%] lg:h-[30%] lg:w-[40%]">
               <iframe
                 title={dict.common.mapTitle}
@@ -224,7 +227,7 @@ export default async function Home({
           <ContactForm
             alignSubmitRight
             labels={homeFormLabels}
-            recipient={contact.email}
+            locale={locale}
           />
         </div>
       </SectionShell>

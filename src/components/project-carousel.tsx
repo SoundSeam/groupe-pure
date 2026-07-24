@@ -5,9 +5,11 @@ import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
 type CarouselImage = {
+  id?: string;
   title: string;
   image: string;
   imageAlt: string;
+  mediaType?: "image" | "video";
 };
 
 export function ProjectCarousel({
@@ -101,20 +103,32 @@ export function ProjectCarousel({
       >
         {images.map((image, index) => (
           <article
-            key={`${image.image}-${index}`}
+            key={image.id ?? `${image.image}-${index}`}
             className="group relative aspect-[4/3] snap-start overflow-hidden rounded-xl bg-[#171a18]"
             role="group"
             aria-roledescription="slide"
             aria-label={`${imageLabel} ${index + 1} / ${images.length}`}
           >
             <div className="absolute inset-0">
-              <Image
-                src={image.image}
-                alt={image.imageAlt}
-                fill
-                sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 82vw"
-                className="object-cover transition duration-500 group-hover:scale-[1.03]"
-              />
+              {image.mediaType === "video" ? (
+                <video
+                  src={image.image}
+                  aria-label={image.imageAlt}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              ) : image.image ? (
+                <Image
+                  src={image.image}
+                  alt={image.imageAlt}
+                  fill
+                  sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 82vw"
+                  className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                />
+              ) : null}
               <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/45" />
             </div>
             <h3 className="absolute top-5 left-5 text-sm font-semibold uppercase text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-base">

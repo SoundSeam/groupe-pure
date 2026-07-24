@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import "../globals.css";
 import SiteHeader from "../site-header";
+import CmsContentRuntime from "@/components/cms-content-runtime";
 import { Footer } from "@/components/site-ui";
 import { getDictionary } from "@/lib/dictionaries";
 import { defaultLocale, getAlternates, hasLocale, locales } from "@/lib/i18n";
@@ -82,6 +83,8 @@ export default async function RootLayout({
           lang={lang}
           logo={assets.logo}
         />
+        <CmsContentRuntime />
+        <script src="/cms-preview-bridge.js" defer />
       </body>
     </html>
   );

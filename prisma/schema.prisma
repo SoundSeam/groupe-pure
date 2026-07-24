@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum CmsRevisionState {
+  DRAFT
+  PUBLISHED
+}
+
+model CmsPage {
+  id                String        @id @default(cuid())
+  path              String        @unique
+  locale            String
+  draftContent      Json          @default("{}")
+  publishedContent  Json          @default("{}")
+  revision          Int           @default(0)
+  publishedRevision Int           @default(0)
+  updatedBy         String?
+  publishedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  revisions         CmsRevision[]
+  assets            CmsAsset[]
+
+  @@index([locale])
+}
+
+model CmsRevision {
+  id        String           @id @default(cuid())
+  pageId    String
+  revision  Int
+  state     CmsRevisionState
+  content   Json
+  authorId  String
+  createdAt DateTime         @default(now())
+  page      CmsPage          @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, revision])
+  @@index([pageId, state, createdAt])
+}
+
+model CmsAsset {
+  id               String    @id @default(cuid())
+  pageId           String?
+  fieldKey         String
+  fileName         String
+  storagePath      String    @unique
+  publicUrl        String
+  mimeType         String
+  size             Int
+  uploadedBy       String
+  lastReferencedAt DateTime?
+  retainedUntil    DateTime?
+  createdAt        DateTime  @default(now())
+  page             CmsPage?  @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([pageId, fieldKey, createdAt])
+  @@index([createdAt])
+  @@index([retainedUntil])
+}

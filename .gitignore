@@ -40,3 +40,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated database client
+/src/generated/prisma
+
+# Local source-media archive and optimized migration payload.
+/media-source-backup/
+/media-upload/
+/database-backups/
+
+# Local generated artifacts and Supabase function dependency cache.
+/tmp/
+/groupe-pure-logo-transparent.png
+/supabase/functions/**/node_modules/

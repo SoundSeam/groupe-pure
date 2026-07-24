@@ -1,11 +1,13 @@
 "use client";
 
 import { UploadSimple } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { fieldClass } from "./styles";
 
 type ProjectType = "architecture" | "construction" | "excavation";
+type Locale = "fr" | "en";
 
 type ContactFormLabels = {
   name: string;
@@ -21,8 +23,13 @@ type ContactFormLabels = {
   message: string;
   attachment: string;
   submit: string;
+  sending: string;
   required: string;
   invalidEmail: string;
+  invalidAttachment: string;
+  attachmentTooLarge: string;
+  submissionError: string;
+  rateLimited: string;
   success: string;
   options: Record<ProjectType, string>;
   subcategoryOptions: Record<ProjectType, readonly string[]>;
@@ -53,27 +60,114 @@ function isProjectType(value: string): value is ProjectType {
 type ContactFormProps = {
   alignSubmitRight?: boolean;
   labels: ContactFormLabels;
-  recipient: string;
+  locale: Locale;
 };
 
 type Errors = Partial<
   Record<
-    "name" | "email" | "projectType" | "subcategory" | "budgetRange" | "message",
+    | "name"
+    | "email"
+    | "projectType"
+    | "subcategory"
+    | "budgetRange"
+    | "message"
+    | "attachment",
     string
   >
 >;
 
+type PrepareResponse = {
+  ok: boolean;
+  sent?: boolean;
+  submissionId?: string;
+  upload?: {
+    path: string;
+    token: string;
+  } | null;
+};
+
+const maxAttachmentBytes = 20 * 1024 * 1024;
+const errorFields = new Set<keyof Errors>([
+  "name",
+  "email",
+  "projectType",
+  "subcategory",
+  "budgetRange",
+  "message",
+]);
+const allowedAttachmentTypes = new Set([
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/heic",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+const attachmentTypesByExtension: Record<string, string> = {
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  heic: "image/heic",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  pdf: "application/pdf",
+  png: "image/png",
+  webp: "image/webp",
+};
+
+function getAttachmentType(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const expectedType = attachmentTypesByExtension[extension] ?? "";
+  const browserType = file.type.toLowerCase();
+
+  if (!expectedType) {
+    return "";
+  }
+
+  if (!browserType) {
+    return expectedType;
+  }
+
+  return allowedAttachmentTypes.has(browserType) &&
+      browserType === expectedType
+    ? browserType
+    : "";
+}
+
+async function getFunctionErrorCode(error: unknown) {
+  if (!error || typeof error !== "object" || !("context" in error)) {
+    return "";
+  }
+
+  const context = (error as { context?: unknown }).context;
+
+  if (!(context instanceof Response)) {
+    return "";
+  }
+
+  try {
+    const payload = (await context.clone().json()) as { code?: unknown };
+    return typeof payload.code === "string" ? payload.code : "";
+  } catch {
+    return "";
+  }
+}
+
 export default function ContactForm({
   alignSubmitRight = false,
   labels,
-  recipient,
+  locale,
 }: ContactFormProps) {
   const [projectType, setProjectType] = useState<ProjectType | "">("");
   const [subcategory, setSubcategory] = useState("");
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isDraggingAttachment, setIsDraggingAttachment] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState("");
+  const [formStartedAt, setFormStartedAt] = useState(() => Date.now());
+  const submissionId = useRef<string | null>(null);
 
   function handleProjectTypeChange(
     event: React.ChangeEvent<HTMLSelectElement>,
@@ -89,17 +183,63 @@ export default function ContactForm({
     }));
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function selectAttachment(file: File | null) {
+    if (!file) {
+      setAttachmentFile(null);
+      setErrors((current) => ({ ...current, attachment: undefined }));
+      submissionId.current = null;
+      return true;
+    }
+
+    const attachmentType = getAttachmentType(file);
+
+    if (!attachmentType) {
+      setAttachmentFile(null);
+      setErrors((current) => ({
+        ...current,
+        attachment: labels.invalidAttachment,
+      }));
+      return false;
+    }
+
+    if (file.size > maxAttachmentBytes) {
+      setAttachmentFile(null);
+      setErrors((current) => ({
+        ...current,
+        attachment: labels.attachmentTooLarge,
+      }));
+      return false;
+    }
+
+    setAttachmentFile(file);
+    setErrors((current) => ({ ...current, attachment: undefined }));
+    submissionId.current = null;
+    return true;
+  }
+
+  function finishSuccessfully(form: HTMLFormElement) {
+    form.reset();
+    setProjectType("");
+    setSubcategory("");
+    setAttachmentFile(null);
+    setErrors({});
+    setStatus(labels.success);
+    submissionId.current = null;
+    setFormStartedAt(Date.now());
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
     const name = String(formData.get("name") ?? "").trim();
     const email = String(formData.get("email") ?? "").trim();
     const phone = String(formData.get("phone") ?? "").trim();
     const projectTypeValue = String(formData.get("projectType") ?? "").trim();
     const subcategoryValue = String(formData.get("subcategory") ?? "").trim();
     const budgetRange = String(formData.get("budgetRange") ?? "").trim();
-    const attachmentName = attachmentFile?.name.trim() ?? "";
     const message = String(formData.get("message") ?? "").trim();
+    const website = String(formData.get("website") ?? "").trim();
     const nextErrors: Errors = {};
 
     if (!name) nextErrors.name = labels.required;
@@ -112,6 +252,11 @@ export default function ContactForm({
     if (!subcategoryValue) nextErrors.subcategory = labels.required;
     if (!budgetRange) nextErrors.budgetRange = labels.required;
     if (!message) nextErrors.message = labels.required;
+    if (attachmentFile && !getAttachmentType(attachmentFile)) {
+      nextErrors.attachment = labels.invalidAttachment;
+    } else if (attachmentFile && attachmentFile.size > maxAttachmentBytes) {
+      nextErrors.attachment = labels.attachmentTooLarge;
+    }
 
     setErrors(nextErrors);
 
@@ -120,32 +265,155 @@ export default function ContactForm({
       return;
     }
 
-    const projectTypeLabel = isProjectType(projectTypeValue)
-      ? labels.options[projectTypeValue]
-      : projectTypeValue;
-    const body = [
-      `${labels.emailBodyLabels.name}: ${name}`,
-      `${labels.emailBodyLabels.email}: ${email}`,
-      `${labels.emailBodyLabels.phone}: ${phone || "-"}`,
-      `${labels.emailBodyLabels.projectType}: ${projectTypeLabel}`,
-      `${labels.emailBodyLabels.subcategory}: ${subcategoryValue}`,
-      `${labels.emailBodyLabels.budgetRange}: ${budgetRange}`,
-      `${labels.emailBodyLabels.attachment}: ${attachmentName || "-"}`,
-      "",
-      `${labels.emailBodyLabels.message}:`,
-      message,
-    ].join("\n");
+    if (!isProjectType(projectTypeValue)) {
+      setErrors((current) => ({
+        ...current,
+        projectType: labels.required,
+      }));
+      return;
+    }
 
-    const mailto = `mailto:${recipient}?subject=${encodeURIComponent(
-      labels.emailSubject,
-    )}&body=${encodeURIComponent(body)}`;
+    const currentSubmissionId =
+      submissionId.current ?? crypto.randomUUID();
+    submissionId.current = currentSubmissionId;
+    setIsSubmitting(true);
+    setStatus(labels.sending);
 
-    setStatus(labels.success);
-    window.location.href = mailto;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const attachmentType = attachmentFile
+        ? getAttachmentType(attachmentFile)
+        : "";
+      const { data: preparedData, error: prepareError } =
+        await supabase.functions.invoke("contact", {
+          body: {
+            action: "prepare",
+            idempotencyKey: currentSubmissionId,
+            locale,
+            name,
+            email,
+            phone,
+            projectType: projectTypeValue,
+            subcategory: subcategoryValue,
+            budgetRange,
+            message,
+            website,
+            startedAt: formStartedAt,
+            attachment: attachmentFile
+              ? {
+                  name: attachmentFile.name,
+                  type: attachmentType,
+                  size: attachmentFile.size,
+                }
+              : null,
+          },
+        });
+
+      if (prepareError) {
+        const code = await getFunctionErrorCode(prepareError);
+        setStatus(code === "RATE_LIMITED" ? labels.rateLimited : labels.submissionError);
+        return;
+      }
+
+      const prepared = preparedData as PrepareResponse | null;
+
+      if (!prepared?.ok) {
+        setStatus(labels.submissionError);
+        return;
+      }
+
+      if (prepared.sent) {
+        finishSuccessfully(form);
+        return;
+      }
+
+      if (prepared.upload) {
+        if (!attachmentFile) {
+          setStatus(labels.submissionError);
+          return;
+        }
+
+        const { error: uploadError } = await supabase.storage
+          .from("contact-attachments")
+          .uploadToSignedUrl(
+            prepared.upload.path,
+            prepared.upload.token,
+            attachmentFile,
+            {
+              contentType: attachmentType,
+            },
+          );
+
+        if (uploadError) {
+          setStatus(labels.submissionError);
+          return;
+        }
+      }
+
+      const { data: sentData, error: sendError } =
+        await supabase.functions.invoke("contact", {
+          body: {
+            action: "send",
+            idempotencyKey: currentSubmissionId,
+          },
+        });
+
+      if (sendError) {
+        const code = await getFunctionErrorCode(sendError);
+        setStatus(code === "RATE_LIMITED" ? labels.rateLimited : labels.submissionError);
+        return;
+      }
+
+      if (!(sentData as { sent?: boolean } | null)?.sent) {
+        setStatus(labels.submissionError);
+        return;
+      }
+
+      finishSuccessfully(form);
+    } catch {
+      setStatus(labels.submissionError);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <form className="grid gap-4 sm:grid-cols-2" noValidate onSubmit={handleSubmit}>
+    <form
+      className="grid gap-4 sm:grid-cols-2"
+      data-cms-ignore
+      noValidate
+      aria-busy={isSubmitting}
+      onChange={(event) => {
+        if (!isSubmitting) {
+          const fieldName = (event.target as unknown as { name?: string })
+            .name as keyof Errors;
+
+          if (errorFields.has(fieldName)) {
+            setErrors((current) => ({
+              ...current,
+              [fieldName]: undefined,
+            }));
+          }
+
+          submissionId.current = null;
+          setStatus("");
+        }
+      }}
+      onSubmit={handleSubmit}
+    >
+      <div
+        className="pointer-events-none absolute -left-[10000px] h-px w-px overflow-hidden"
+        aria-hidden="true"
+      >
+        <input
+          aria-hidden="true"
+          autoComplete="off"
+          id="website"
+          name="website"
+          tabIndex={-1}
+          type="text"
+        />
+      </div>
       <div>
         <label className="sr-only" htmlFor="name">
           {labels.name}
@@ -153,6 +421,7 @@ export default function ContactForm({
         <input
           className={fieldClass}
           id="name"
+          maxLength={120}
           name="name"
           placeholder={labels.name}
           type="text"
@@ -172,6 +441,7 @@ export default function ContactForm({
         <input
           className={fieldClass}
           id="email"
+          maxLength={254}
           name="email"
           placeholder={labels.email}
           type="email"
@@ -191,6 +461,7 @@ export default function ContactForm({
         <input
           className={fieldClass}
           id="phone"
+          maxLength={50}
           name="phone"
           placeholder={labels.phone}
           type="tel"
@@ -348,6 +619,7 @@ export default function ContactForm({
         <textarea
           className={`${fieldClass} min-h-40 resize-none`}
           id="message"
+          maxLength={5000}
           name="message"
           placeholder={labels.message}
           aria-invalid={Boolean(errors.message)}
@@ -362,12 +634,20 @@ export default function ContactForm({
       <div className="sm:col-span-2">
         <input
           accept=".doc,.docx,.heic,.jpeg,.jpg,.pdf,.png,.webp"
+          aria-describedby={
+            errors.attachment ? "attachment-error" : undefined
+          }
+          aria-invalid={Boolean(errors.attachment)}
           className="peer sr-only"
           id="attachment"
           name="attachment"
-          onChange={(event) =>
-            setAttachmentFile(event.target.files?.[0] ?? null)
-          }
+          onChange={(event) => {
+            const file = event.target.files?.[0] ?? null;
+
+            if (!selectAttachment(file)) {
+              event.target.value = "";
+            }
+          }}
           type="file"
         />
         <label
@@ -385,7 +665,7 @@ export default function ContactForm({
           onDrop={(event) => {
             event.preventDefault();
             setIsDraggingAttachment(false);
-            setAttachmentFile(event.dataTransfer.files[0] ?? null);
+            selectAttachment(event.dataTransfer.files[0] ?? null);
           }}
         >
           <UploadSimple
@@ -400,15 +680,24 @@ export default function ContactForm({
             {attachmentFile?.name || labels.attachment}
           </span>
         </label>
+        {errors.attachment ? (
+          <p
+            id="attachment-error"
+            className="mt-2 text-sm text-white/65"
+          >
+            {errors.attachment}
+          </p>
+        ) : null}
       </div>
       <div className="sm:col-span-2">
         <button
           type="submit"
-          className={`rounded-xl bg-[#e4c58f] px-9 py-4 text-lg font-medium text-[#101211] transition hover:bg-[#e4c58f]/90 ${
+          disabled={isSubmitting}
+          className={`rounded-xl bg-[#e4c58f] px-9 py-4 text-lg font-medium text-[#101211] transition hover:bg-[#e4c58f]/90 disabled:cursor-wait disabled:opacity-65 ${
             alignSubmitRight ? "ml-auto block" : ""
           }`}
         >
-          {labels.submit}
+          {isSubmitting ? labels.sending : labels.submit}
         </button>
         {status ? (
           <p className="mt-4 max-w-xl text-sm leading-6 text-white/65" role="status">

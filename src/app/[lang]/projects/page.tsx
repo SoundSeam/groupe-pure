@@ -6,7 +6,7 @@ import {
   PageHero,
   SectionShell,
 } from "@/components/site-ui";
-import { ProjectCarousel } from "@/components/project-carousel";
+import { ProjectsContent } from "@/components/projects-content";
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, hasLocale } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -54,42 +54,6 @@ export default async function ProjectsPage({
           next: "Next image",
           image: "Image",
         };
-  const projectSections = [
-    {
-      title: dict.services[0].title,
-      images: [
-        dict.projects[1],
-        dict.projects[2],
-        dict.projects[3],
-        dict.projects[4],
-        dict.projects[5],
-        dict.projects[0],
-      ],
-    },
-    {
-      title: dict.services[1].title,
-      images: [
-        dict.projects[0],
-        dict.projects[3],
-        dict.projects[4],
-        dict.projects[1],
-        dict.projects[2],
-        dict.projects[5],
-      ],
-    },
-    {
-      title: dict.services[2].title,
-      images: [
-        dict.projects[0],
-        dict.projects[4],
-        dict.projects[5],
-        dict.projects[3],
-        dict.projects[1],
-        dict.projects[2],
-      ],
-    },
-  ];
-
   return (
     <main>
       <PageHero
@@ -98,18 +62,14 @@ export default async function ProjectsPage({
         lead={dict.projectsPage.lead}
       />
       <SectionShell className="pt-0">
-        <div className="space-y-20 sm:space-y-28">
-          {projectSections.map((section) => (
-            <ProjectCarousel
-              key={section.title}
-              title={section.title}
-              images={section.images}
-              previousLabel={carouselLabels.previous}
-              nextLabel={carouselLabels.next}
-              imageLabel={carouselLabels.image}
-            />
-          ))}
-        </div>
+        <ProjectsContent
+          pagePath={`/${lang}/projects`}
+          sectionTitles={dict.services.map((service) => service.title)}
+          fallbackProjects={dict.projects}
+          previousLabel={carouselLabels.previous}
+          nextLabel={carouselLabels.next}
+          imageLabel={carouselLabels.image}
+        />
       </SectionShell>
       <CtaBand
         lang={lang as Locale}

@@ -56,6 +56,7 @@ export default async function ContactPage({
               width={1359}
               height={1020}
               sizes="(min-width: 1024px) 32vw, 100vw"
+              data-cms-media-key="media:contact:building"
               className="h-auto w-full rounded-xl"
             />
           </div>
@@ -73,7 +74,7 @@ export default async function ContactPage({
             <ContactForm
               alignSubmitRight
               labels={dict.form}
-              recipient={contact.email}
+              locale={lang}
             />
           </section>
         </div>

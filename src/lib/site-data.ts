@@ -14,54 +14,56 @@ export const googleBusiness = {
     "https://www.google.com/maps?place_id=ChIJYfqnaBUdyUwRhU9gd9XSOJs",
 };
 
+const siteMediaBase =
+  "https://rhgzekbjbgjeqxxjwgpf.supabase.co/storage/v1/object/public/site-media";
+
+export function siteMedia(path: string) {
+  return `${siteMediaBase}/${path}`;
+}
+
 export const assets = {
-  logo:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/logovertical.png",
-  headerLogo:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/logohorizontal.png",
-  contactBuilding:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/building.webp",
-  heroVideo:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/WebCinematicHero.mp4",
-  territoryImage:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/building.webp",
-  apchqLogo:
-    "https://inscriptions.galonsapchq.com/assets/logo-apchq-d0e669d9d2244f9ddf421839a73a8f0a6bed7db640029f5d5827cfb2f0a78adb.png",
+  logo: "/brand/logo-vertical.png",
+  headerLogo: "/brand/logo-horizontal.png",
+  contactBuilding: siteMedia("content/building.webp"),
+  heroVideo: siteMedia("hero/hero.mp4"),
+  heroPoster: siteMedia("hero/hero-poster.webp"),
+  territoryImage: siteMedia("content/building.webp"),
+  apchqLogo: "/partner-logos/apchq-badge.png",
 };
 
 export const partnerLogos = [
   {
-    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/logo_otpq_horizontal.png",
+    src: "/partner-logos/otpq-logo.png",
     alt: "Ordre des technologues professionnels du Québec",
-    width: 2307,
-    height: 828,
+    width: 175,
+    height: 59,
   },
   {
-    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/apchq-logo-dark.svg",
+    src: "/partner-logos/apchq-logo.svg",
     alt: "APCHQ",
     width: 217,
     height: 40,
   },
   {
-    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ccq-logo.svg",
+    src: "/partner-logos/ccq-logo.svg",
     alt: "Commission de la construction du Québec",
     width: 248,
     height: 73,
   },
   {
-    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/cnesst.png",
+    src: "/partner-logos/cnesst-logo.png",
     alt: "Commission des normes, de l’équité, de la santé et de la sécurité du travail",
     width: 576,
     height: 216,
   },
   {
-    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/acq-logo.svg",
+    src: "/partner-logos/acq-logo.svg",
     alt: "Association de la construction du Québec",
     width: 778,
     height: 143,
   },
   {
-    src: "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/rbq.png",
+    src: "/partner-logos/rbq-logo.png",
     alt: "Régie du bâtiment du Québec",
     width: 500,
     height: 146,
@@ -69,10 +71,10 @@ export const partnerLogos = [
 ] as const;
 
 export const projectImages = [
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/ChatGPT+Image+Jun+1%2C+2026%2C+03_54_15+PM.png",
-  "https://www.matierepremierearchitecture.ca/assets/project/le-plateau/3.jpg?fc0d2768",
-  "https://www.matierepremierearchitecture.ca/assets/project/le-plateau/4.jpg?bb264d85",
-  "https://www.matierepremierearchitecture.ca/assets/project/sur-le-ruisseau/1.jpg?c96649b5",
-  "https://www.matierepremierearchitecture.ca/assets/project/sur-le-ruisseau/2.jpg?ec02dae8",
-  "https://www.matierepremierearchitecture.ca/assets/project/sur-le-ruisseau/3.jpg?e7e1ab66",
+  siteMedia("projects/le-2100.webp"),
+  siteMedia("projects/residence-montcalm.webp"),
+  siteMedia("projects/maison-aurel.webp"),
+  siteMedia("projects/domaine-elysee.webp"),
+  siteMedia("projects/pavillon-orion.webp"),
+  siteMedia("projects/atelier-belvedere.webp"),
 ];

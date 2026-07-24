@@ -70,23 +70,31 @@ export default async function PrivacyPage({
             <>
               <p>
                 Le site ne crée pas de compte utilisateur. Lorsque vous utilisez
-                le formulaire de contact, les renseignements saisis servent à
-                préparer un courriel dans votre propre application de
-                messagerie. Le site ne transmet pas ce formulaire à une base de
-                données.
+                le formulaire de contact, nous recueillons les renseignements
+                que vous y inscrivez, notamment votre nom, vos coordonnées, les
+                détails de votre projet et toute pièce jointe que vous
+                choisissez de transmettre.
               </p>
               <p>
-                Si vous envoyez le courriel préparé, nous recevons les
-                renseignements que vous choisissez d’y inclure, notamment votre
-                nom, vos coordonnées et les détails de votre projet.
+                Ces renseignements sont transmis à notre équipe afin de traiter
+                votre demande et sont conservés dans des systèmes à accès
+                restreint.
               </p>
             </>
           ),
         },
         {
-          title: "Google Maps et services externes",
+          title: "Supabase, Resend, Google Maps et services externes",
           body: (
             <>
+              <p>
+                Le formulaire utilise Supabase pour le traitement sécurisé des
+                demandes, la prévention des abus et le stockage privé des
+                pièces jointes. Resend assure la livraison du courriel à notre
+                équipe. Ces fournisseurs peuvent traiter des renseignements
+                personnels et des données techniques pour nous fournir leurs
+                services.
+              </p>
               <p>
                 Le site utilise Google Maps Platform pour afficher une carte et,
                 lorsque la configuration est active, la note publique de Groupe
@@ -124,10 +132,12 @@ export default async function PrivacyPage({
           body: (
             <>
               <p>
-                Les renseignements reçus par courriel sont utilisés pour
-                répondre à votre demande, évaluer un projet, communiquer avec
-                vous et respecter nos obligations légales. Ils sont conservés
-                seulement aussi longtemps que nécessaire à ces fins.
+                Les renseignements soumis sont utilisés pour répondre à votre
+                demande, évaluer un projet, communiquer avec vous et respecter
+                nos obligations légales. Les pièces jointes sont stockées de
+                façon privée et les liens transmis par courriel expirent
+                automatiquement. Les renseignements sont conservés seulement
+                aussi longtemps que nécessaire à ces fins.
               </p>
               <p>
                 Nous appliquons des mesures raisonnables pour protéger les
@@ -189,22 +199,28 @@ export default async function PrivacyPage({
             <>
               <p>
                 The website does not create user accounts. When you use the
-                contact form, your entries are used to prepare an email in your
-                own mail application. The website does not submit the form to a
-                database.
+                contact form, we collect the information you enter, including
+                your name, contact details, project information and any
+                attachment you choose to provide.
               </p>
               <p>
-                If you send the prepared email, we receive the information you
-                choose to include, such as your name, contact details and
-                project information.
+                This information is delivered to our team so we can process
+                your inquiry and is kept in access-restricted systems.
               </p>
             </>
           ),
         },
         {
-          title: "Google Maps and external services",
+          title: "Supabase, Resend, Google Maps and external services",
           body: (
             <>
+              <p>
+                The form uses Supabase to securely process inquiries, prevent
+                abuse and privately store attachments. Resend delivers the
+                resulting email to our team. These providers may process
+                personal information and technical data to provide their
+                services to us.
+              </p>
               <p>
                 This website uses Google Maps Platform to display a map and,
                 when configured, Groupe Pure’s public rating. Google may receive
@@ -241,10 +257,11 @@ export default async function PrivacyPage({
           body: (
             <>
               <p>
-                Information received by email is used to respond to your
-                inquiry, assess a project, communicate with you and meet legal
-                obligations. It is retained only as long as reasonably needed
-                for those purposes.
+                Submitted information is used to respond to your inquiry,
+                assess a project, communicate with you and meet legal
+                obligations. Attachments are stored privately and links
+                included in email expire automatically. Information is retained
+                only as long as reasonably needed for those purposes.
               </p>
               <p>
                 We use reasonable safeguards to protect personal information.
@@ -294,8 +311,8 @@ export default async function PrivacyPage({
       }
       updated={
         isFrench
-          ? "Dernière mise à jour : 23 juillet 2026"
-          : "Last updated: July 23, 2026"
+          ? "Dernière mise à jour : 24 juillet 2026"
+          : "Last updated: July 24, 2026"
       }
       sections={sections}
     />
