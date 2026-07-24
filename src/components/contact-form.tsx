@@ -1,7 +1,8 @@
 "use client";
 
 import { UploadSimple } from "@phosphor-icons/react";
-import { useRef, useState } from "react";
+import Script from "next/script";
+import { useEffect, useRef, useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { fieldClass } from "./styles";
@@ -30,6 +31,8 @@ type ContactFormLabels = {
   attachmentTooLarge: string;
   submissionError: string;
   rateLimited: string;
+  verificationError: string;
+  verificationUnavailable: string;
   success: string;
   options: Record<ProjectType, string>;
   subcategoryOptions: Record<ProjectType, readonly string[]>;
@@ -86,7 +89,32 @@ type PrepareResponse = {
   } | null;
 };
 
+type TurnstileRenderOptions = {
+  sitekey: string;
+  action: string;
+  appearance: "interaction-only";
+  theme: "dark";
+  callback: (token: string) => void;
+  "expired-callback": () => void;
+  "error-callback": () => void;
+};
+
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement,
+        options: TurnstileRenderOptions,
+      ) => string;
+      remove: (widgetId: string) => void;
+      reset: (widgetId: string) => void;
+    };
+  }
+}
+
 const maxAttachmentBytes = 20 * 1024 * 1024;
+const turnstileSiteKey =
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() ?? "";
 const errorFields = new Set<keyof Errors>([
   "name",
   "email",
@@ -166,8 +194,67 @@ export default function ContactForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [status, setStatus] = useState("");
+  const [turnstileScriptReady, setTurnstileScriptReady] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [formStartedAt, setFormStartedAt] = useState(() => Date.now());
   const submissionId = useRef<string | null>(null);
+  const turnstileContainer = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      !turnstileSiteKey ||
+      !turnstileScriptReady ||
+      !turnstileContainer.current ||
+      !window.turnstile ||
+      turnstileWidgetId.current
+    ) {
+      return;
+    }
+
+    turnstileWidgetId.current = window.turnstile.render(
+      turnstileContainer.current,
+      {
+        sitekey: turnstileSiteKey,
+        action: "contact_form",
+        appearance: "interaction-only",
+        theme: "dark",
+        callback: (token) => {
+          setTurnstileToken(token);
+          setStatus((current) =>
+            current === labels.verificationError ? "" : current
+          );
+        },
+        "expired-callback": () => {
+          setTurnstileToken("");
+        },
+        "error-callback": () => {
+          setTurnstileToken("");
+          setStatus(labels.verificationUnavailable);
+        },
+      },
+    );
+
+    return () => {
+      if (turnstileWidgetId.current && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetId.current);
+      }
+
+      turnstileWidgetId.current = null;
+    };
+  }, [
+    labels.verificationError,
+    labels.verificationUnavailable,
+    turnstileScriptReady,
+  ]);
+
+  function resetTurnstile() {
+    setTurnstileToken("");
+
+    if (turnstileWidgetId.current && window.turnstile) {
+      window.turnstile.reset(turnstileWidgetId.current);
+    }
+  }
 
   function handleProjectTypeChange(
     event: React.ChangeEvent<HTMLSelectElement>,
@@ -226,6 +313,7 @@ export default function ContactForm({
     setStatus(labels.success);
     submissionId.current = null;
     setFormStartedAt(Date.now());
+    resetTurnstile();
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -273,6 +361,12 @@ export default function ContactForm({
       return;
     }
 
+    if (turnstileSiteKey && !turnstileToken) {
+      setStatus(labels.verificationError);
+      resetTurnstile();
+      return;
+    }
+
     const currentSubmissionId =
       submissionId.current ?? crypto.randomUUID();
     submissionId.current = currentSubmissionId;
@@ -299,6 +393,7 @@ export default function ContactForm({
             message,
             website,
             startedAt: formStartedAt,
+            turnstileToken: turnstileToken || undefined,
             attachment: attachmentFile
               ? {
                   name: attachmentFile.name,
@@ -311,7 +406,15 @@ export default function ContactForm({
 
       if (prepareError) {
         const code = await getFunctionErrorCode(prepareError);
-        setStatus(code === "RATE_LIMITED" ? labels.rateLimited : labels.submissionError);
+        if (code === "RATE_LIMITED") {
+          setStatus(labels.rateLimited);
+        } else if (code === "VERIFICATION_FAILED") {
+          submissionId.current = null;
+          setStatus(labels.verificationError);
+          resetTurnstile();
+        } else {
+          setStatus(labels.submissionError);
+        }
         return;
       }
 
@@ -378,7 +481,19 @@ export default function ContactForm({
   }
 
   return (
-    <form
+    <>
+      {turnstileSiteKey ? (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+          strategy="afterInteractive"
+          onReady={() => setTurnstileScriptReady(true)}
+          onError={() => {
+            setTurnstileScriptReady(false);
+            setStatus(labels.verificationUnavailable);
+          }}
+        />
+      ) : null}
+      <form
       className="grid gap-4 sm:grid-cols-2"
       data-cms-ignore
       noValidate
@@ -395,7 +510,10 @@ export default function ContactForm({
             }));
           }
 
-          submissionId.current = null;
+          if (submissionId.current) {
+            submissionId.current = null;
+            resetTurnstile();
+          }
           setStatus("");
         }
       }}
@@ -689,6 +807,15 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
+      {turnstileSiteKey ? (
+        <div className="sm:col-span-2">
+          <div
+            ref={turnstileContainer}
+            aria-label={labels.verificationError}
+            className="min-h-0"
+          />
+        </div>
+      ) : null}
       <div className="sm:col-span-2">
         <button
           type="submit"
@@ -705,6 +832,7 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-    </form>
+      </form>
+    </>
   );
 }

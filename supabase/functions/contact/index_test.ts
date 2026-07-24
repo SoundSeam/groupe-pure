@@ -1,9 +1,11 @@
 import {
+  assessContentRisk,
   attachmentMatchesType,
   bytesToBase64,
   ContactError,
   type ContactSubmission,
   emailContent,
+  evaluateTurnstileResponse,
   safeFileName,
   validatePrepareRequest,
 } from "./index.ts";
@@ -124,6 +126,64 @@ Deno.test("encodes attachment bytes deterministically for Resend retries", () =>
   );
 });
 
+Deno.test("quarantines suspicious content without penalizing a normal lead", () => {
+  const normal = assessContentRisk({
+    name: "Client Test",
+    message:
+      "Nous souhaitons rénover notre cuisine et discuter des prochaines étapes.",
+    startedAt: Date.now() - 60_000,
+  });
+  const suspicious = assessContentRisk({
+    name: "https://spam.example",
+    message: "buy https://a.example https://b.example https://c.example",
+    startedAt: Date.now() - 100,
+  });
+
+  assert(normal.decision === "ACCEPTED", "A normal lead was quarantined.");
+  assert(
+    suspicious.decision === "QUARANTINED",
+    "Suspicious content was not quarantined.",
+  );
+});
+
+Deno.test("validates Turnstile hostname and action", () => {
+  const allowedHostnames = new Set(["groupepure.ca"]);
+  const valid = evaluateTurnstileResponse(
+    {
+      success: true,
+      hostname: "groupepure.ca",
+      action: "contact_form",
+    },
+    allowedHostnames,
+  );
+  const wrongHostname = evaluateTurnstileResponse(
+    {
+      success: true,
+      hostname: "attacker.example",
+      action: "contact_form",
+    },
+    allowedHostnames,
+  );
+  const wrongAction = evaluateTurnstileResponse(
+    {
+      success: true,
+      hostname: "groupepure.ca",
+      action: "login",
+    },
+    allowedHostnames,
+  );
+
+  assert(valid.status === "VERIFIED", "A valid Turnstile result failed.");
+  assert(
+    wrongHostname.status === "HOSTNAME_MISMATCH",
+    "A foreign hostname was accepted.",
+  );
+  assert(
+    wrongAction.status === "ACTION_MISMATCH",
+    "A foreign widget action was accepted.",
+  );
+});
+
 Deno.test("escapes visitor content in the internal email", () => {
   const submission: ContactSubmission = {
     idempotency_key: "51060f96-f97a-4b82-9b75-1d9b1bc88b58",
@@ -140,6 +200,8 @@ Deno.test("escapes visitor content in the internal email", () => {
     attachment_size: null,
     storage_path: null,
     status: "PENDING",
+    decision: "ACCEPTED",
+    decision_reasons: [],
   };
   const content = emailContent(submission, null);
 
@@ -160,5 +222,19 @@ Deno.test("escapes visitor content in the internal email", () => {
   assert(
     content.text.includes("Budget prévu: 100 000 $ à 250 000 $"),
     "The English budget was not translated for the owner.",
+  );
+
+  const quarantined = emailContent(
+    {
+      ...submission,
+      decision: "QUARANTINED",
+      decision_reasons: ["IP_BURST"],
+    },
+    null,
+  );
+
+  assert(
+    quarantined.subject.startsWith("[À VÉRIFIER]"),
+    "A quarantined lead is not clearly marked.",
   );
 });
