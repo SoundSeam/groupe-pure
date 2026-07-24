@@ -35,8 +35,8 @@ export const partnerLogos = [
   {
     src: "/partner-logos/otpq-logo.png",
     alt: "Ordre des technologues professionnels du Québec",
-    width: 175,
-    height: 59,
+    width: 2307,
+    height: 828,
   },
   {
     src: "/partner-logos/apchq-logo.svg",
