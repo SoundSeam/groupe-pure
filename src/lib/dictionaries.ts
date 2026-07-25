@@ -50,7 +50,7 @@ const chloePortrait = "/team/chloe-lavallee-professional.png";
 const mathisPortrait = "/team/mathis-houde-professional.png";
 const williamPortrait = "/team/william-tremblay-professional.png";
 const yvonPortrait = "/team/yvon-racine-professional-v3.png";
-const danielPortrait = "/team/daniel-nduwimana-professional.png";
+const danielPortrait = "/team/daniel-nduwimana-professional-original.png";
 
 const architectureVideo = siteMedia("services/architecture.mp4");
 const constructionVideo = siteMedia("services/construction.mp4");
