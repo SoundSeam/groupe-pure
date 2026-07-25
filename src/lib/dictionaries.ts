@@ -39,9 +39,18 @@ const teamPortraits = [
   siteMedia("team/project-coordinator.webp"),
 ] as const;
 const maudePortrait = siteMedia("team/maude-desormeaux.webp");
-const mathieuPortrait = siteMedia("team/mathieu-lariviere.webp");
+const mathieuPortrait = "/team/mathieu-lariviere-happy.png";
 const elisePortrait = siteMedia("team/elise-bibeau.webp");
-const yanickPortrait = siteMedia("team/yanick-grenier-antonacci.webp");
+const yanickPortrait = "/team/yanick-grenier-antonacci-athletic.png";
+const felixPortrait = "/team/felix-deland-professional.png";
+const andrePortrait = "/team/andre-santos-professional.png";
+const shannonPortrait = "/team/shannon-matte-professional.png";
+const thomasPortrait = "/team/thomas-sawadogo-professional.png";
+const chloePortrait = "/team/chloe-lavallee-professional.png";
+const mathisPortrait = "/team/mathis-houde-professional.png";
+const williamPortrait = "/team/william-tremblay-professional.png";
+const yvonPortrait = "/team/yvon-racine-professional-v3.png";
+const danielPortrait = "/team/daniel-nduwimana-professional.png";
 
 const architectureVideo = siteMedia("services/architecture.mp4");
 const constructionVideo = siteMedia("services/construction.mp4");
@@ -365,50 +374,50 @@ const dictionaries = {
         {
           name: "Félix Deland",
           title: "Technologie de l’architecture",
-          image: teamPortraits[1],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: felixPortrait,
+          imageAlt: "Portrait de Félix Deland",
         },
         {
           name: "Shannon Matte",
           title: "Membre de l’équipe",
-          image: teamPortraits[0],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: shannonPortrait,
+          imageAlt: "Portrait de Shannon Matte",
         },
         {
           name: "Thomas Sawadogo",
           title: "Membre de l’équipe",
-          image: teamPortraits[2],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: thomasPortrait,
+          imageAlt: "Portrait de Thomas Sawadogo",
         },
         {
           name: "Mathis Houde",
           title: "Membre de l’équipe",
-          image: teamPortraits[1],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: mathisPortrait,
+          imageAlt: "Portrait de Mathis Houde",
         },
         {
           name: "Chloé Lavallée",
           title: "Membre de l’équipe",
-          image: teamPortraits[0],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: chloePortrait,
+          imageAlt: "Portrait de Chloé Lavallée",
         },
         {
           name: "André Santos",
           title: "Membre de l’équipe",
-          image: teamPortraits[2],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: andrePortrait,
+          imageAlt: "Portrait d’André Santos",
         },
         {
           name: "William Tremblay",
           title: "Membre de l’équipe",
-          image: teamPortraits[1],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: williamPortrait,
+          imageAlt: "Portrait de William Tremblay",
         },
         {
           name: "Yvon Racine",
           title: "Membre de l’équipe",
-          image: teamPortraits[0],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: yvonPortrait,
+          imageAlt: "Portrait de Yvon Racine",
         },
         {
           name: "Mathieu Larivière",
@@ -425,8 +434,8 @@ const dictionaries = {
         {
           name: "Daniel Nduwimana",
           title: "Conception Web",
-          image: teamPortraits[1],
-          imageAlt: "Portrait temporaire d’un membre de l’équipe",
+          image: danielPortrait,
+          imageAlt: "Portrait de Daniel Nduwimana",
         },
       ],
     },
@@ -725,50 +734,50 @@ const dictionaries = {
         {
           name: "Félix Deland",
           title: "Architectural technology",
-          image: teamPortraits[1],
-          imageAlt: "Temporary portrait of a team member",
+          image: felixPortrait,
+          imageAlt: "Portrait of Félix Deland",
         },
         {
           name: "Shannon Matte",
           title: "Team member",
-          image: teamPortraits[0],
-          imageAlt: "Temporary portrait of a team member",
+          image: shannonPortrait,
+          imageAlt: "Portrait of Shannon Matte",
         },
         {
           name: "Thomas Sawadogo",
           title: "Team member",
-          image: teamPortraits[2],
-          imageAlt: "Temporary portrait of a team member",
+          image: thomasPortrait,
+          imageAlt: "Portrait of Thomas Sawadogo",
         },
         {
           name: "Mathis Houde",
           title: "Team member",
-          image: teamPortraits[1],
-          imageAlt: "Temporary portrait of a team member",
+          image: mathisPortrait,
+          imageAlt: "Portrait of Mathis Houde",
         },
         {
           name: "Chloé Lavallée",
           title: "Team member",
-          image: teamPortraits[0],
-          imageAlt: "Temporary portrait of a team member",
+          image: chloePortrait,
+          imageAlt: "Portrait of Chloé Lavallée",
         },
         {
           name: "André Santos",
           title: "Team member",
-          image: teamPortraits[2],
-          imageAlt: "Temporary portrait of a team member",
+          image: andrePortrait,
+          imageAlt: "Portrait of André Santos",
         },
         {
           name: "William Tremblay",
           title: "Team member",
-          image: teamPortraits[1],
-          imageAlt: "Temporary portrait of a team member",
+          image: williamPortrait,
+          imageAlt: "Portrait of William Tremblay",
         },
         {
           name: "Yvon Racine",
           title: "Team member",
-          image: teamPortraits[0],
-          imageAlt: "Temporary portrait of a team member",
+          image: yvonPortrait,
+          imageAlt: "Portrait of Yvon Racine",
         },
         {
           name: "Mathieu Larivière",
@@ -785,8 +794,8 @@ const dictionaries = {
         {
           name: "Daniel Nduwimana",
           title: "Web Design",
-          image: teamPortraits[1],
-          imageAlt: "Temporary portrait of a team member",
+          image: danielPortrait,
+          imageAlt: "Portrait of Daniel Nduwimana",
         },
       ],
     },
