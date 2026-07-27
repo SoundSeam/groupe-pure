@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { ArrowRight, SpinnerGap } from "@phosphor-icons/react";
+import { ArrowRight, Eye, EyeSlash, SpinnerGap } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -19,6 +19,7 @@ export default function AdminLogin({
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
@@ -78,16 +79,31 @@ export default function AdminLogin({
           <label className="sr-only" htmlFor="admin-password">
             Password
           </label>
-          <input
-            id="admin-password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            placeholder="Password"
-            className="h-14 w-full border-0 bg-transparent px-5 text-base text-white outline-none placeholder:text-white/35 focus:bg-white/[0.025]"
-          />
+          <div className="relative">
+            <input
+              id="admin-password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Password"
+              className="h-14 w-full border-0 bg-transparent py-0 pr-14 pl-5 text-base text-white outline-none placeholder:text-white/35 focus:bg-white/[0.025]"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((visible) => !visible)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 flex w-14 items-center justify-center text-white/45 transition hover:text-white focus-visible:text-white focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-[#e4c58f]"
+            >
+              {showPassword ? (
+                <EyeSlash className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <Eye className="h-5 w-5" aria-hidden="true" />
+              )}
+            </button>
+          </div>
         </div>
         <button
           type="submit"
