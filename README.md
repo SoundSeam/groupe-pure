@@ -30,18 +30,19 @@ Set `FULL_SITE_ENABLED=true` to make every page available. Missing, empty, and
 
 ## Live Google rating
 
-The home page uses Google Maps Platform's Places UI Kit to load the current
-rating and review count for Groupe Pure. Without credentials, it falls back to a
-link that opens the business on Google Maps and never displays stale totals.
+The home page uses Google Maps Platform's Places library to load the current
+rating and review count for Groupe Pure into the site's own review badge.
+Without credentials, it falls back to a link that opens the business on Google
+Maps and never displays stale totals.
 
 1. Create or select a billing-enabled project in Google Cloud.
-2. Enable **Maps JavaScript API** and **Places UI Kit API**.
+2. Enable **Maps JavaScript API** and **Places API (New)**.
 3. Create a browser API key and restrict it:
    - Application restriction: **Websites**
    - Allowed production referrers: `https://groupepure.ca` and
      `https://www.groupepure.ca`
    - Add `http://localhost:3000` only for local development.
-   - API restrictions: **Maps JavaScript API** and **Places UI Kit API**.
+   - API restrictions: **Maps JavaScript API** and **Places API (New)**.
 4. Copy `.env.example` to `.env.local` and set
    `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
 5. After verifying the key restrictions, set

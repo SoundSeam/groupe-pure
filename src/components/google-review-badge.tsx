@@ -1,7 +1,12 @@
 "use client";
 
-import Script from "next/script";
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { StarIcon } from "./icons";
 
@@ -15,12 +20,20 @@ const subscribeToOrigin = () => () => {};
 const getClientCanLoadPlaces = () =>
   GOOGLE_MAPS_ALLOWED_ORIGINS.has(window.location.origin);
 const getServerCanLoadPlaces = () => false;
+const GOOGLE_MAPS_SCRIPT_ID = "google-maps-places-data";
+const GOOGLE_MAPS_READY_CALLBACK = "__groupePureGoogleMapsReady";
 
 type GoogleReviewBadgeProps = {
   apiKey?: string;
   fallbackLabel: string;
   mapsUrl: string;
   placeId: string;
+};
+
+type LiveGoogleRating = {
+  mapsUrl: string;
+  rating: number;
+  reviewCount: number;
 };
 
 export default function GoogleReviewBadge({
@@ -34,104 +47,133 @@ export default function GoogleReviewBadge({
     getClientCanLoadPlaces,
     getServerCanLoadPlaces,
   );
-  const [hasLoaded, setHasLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const detailsElement = useRef<HTMLElement | null>(null);
+  const [liveRating, setLiveRating] = useState<LiveGoogleRating | null>(null);
+  const requestedPlaceId = useRef<string | null>(null);
 
-  const handlePlaceLoad = useCallback(() => {
-    setHasLoaded(true);
-  }, []);
+  const loadLiveRating = useCallback(() => {
+    const importLibrary = window.google?.maps?.importLibrary;
+    if (!importLibrary || requestedPlaceId.current === placeId) {
+      return;
+    }
 
-  const handlePlaceError = useCallback(() => {
-    setHasError(true);
-  }, []);
+    requestedPlaceId.current = placeId;
+    setHasError(false);
 
-  const setDetailsElement = useCallback(
-    (element: HTMLElement | null) => {
-      detailsElement.current?.removeEventListener("gmp-load", handlePlaceLoad);
-      detailsElement.current?.removeEventListener(
-        "gmp-error",
-        handlePlaceError,
-      );
-      detailsElement.current?.removeEventListener(
-        "gmp-requesterror",
-        handlePlaceError,
-      );
-      detailsElement.current = element;
-      detailsElement.current?.addEventListener("gmp-load", handlePlaceLoad);
-      detailsElement.current?.addEventListener("gmp-error", handlePlaceError);
-      detailsElement.current?.addEventListener(
-        "gmp-requesterror",
-        handlePlaceError,
-      );
-    },
-    [handlePlaceError, handlePlaceLoad],
-  );
+    void (async () => {
+      try {
+        const { Place } = await importLibrary("places");
+        const place = new Place({ id: placeId });
 
-  const showLiveBadge =
-    Boolean(apiKey) && canLoadPlaces && hasLoaded && !hasError;
+        await place.fetchFields({
+          fields: ["googleMapsURI", "rating", "userRatingCount"],
+        });
+
+        if (
+          typeof place.rating !== "number" ||
+          typeof place.userRatingCount !== "number"
+        ) {
+          throw new Error("Google did not return complete rating data.");
+        }
+
+        setLiveRating({
+          mapsUrl: place.googleMapsURI || mapsUrl,
+          rating: place.rating,
+          reviewCount: place.userRatingCount,
+        });
+      } catch {
+        requestedPlaceId.current = null;
+        setHasError(true);
+      }
+    })();
+  }, [mapsUrl, placeId]);
+
+  useEffect(() => {
+    if (!apiKey || !canLoadPlaces) {
+      return;
+    }
+
+    if (window.google?.maps?.importLibrary) {
+      loadLiveRating();
+      return;
+    }
+
+    window[GOOGLE_MAPS_READY_CALLBACK] = loadLiveRating;
+
+    if (document.getElementById(GOOGLE_MAPS_SCRIPT_ID)) {
+      return;
+    }
+
+    const script = document.createElement("script");
+    const query = new URLSearchParams({
+      key: apiKey,
+      loading: "async",
+      libraries: "places",
+      v: "weekly",
+      auth_referrer_policy: "origin",
+      callback: GOOGLE_MAPS_READY_CALLBACK,
+    });
+
+    script.id = GOOGLE_MAPS_SCRIPT_ID;
+    script.src = `https://maps.googleapis.com/maps/api/js?${query}`;
+    script.async = true;
+    script.onerror = () => setHasError(true);
+    document.head.append(script);
+  }, [apiKey, canLoadPlaces, loadLiveRating]);
+
+  const showLiveRating = liveRating && !hasError;
+  const roundedRating = showLiveRating ? Math.round(liveRating.rating) : 5;
 
   return (
-    <div className="grid min-h-14 w-full max-w-[18rem]">
+    <div className="min-h-14">
       <a
-        href={mapsUrl}
+        href={showLiveRating ? liveRating.mapsUrl : mapsUrl}
         target="_blank"
         rel="noreferrer"
-        className={`col-start-1 row-start-1 inline-flex min-h-14 items-center gap-3 rounded-lg bg-[#171a18] px-5 py-3 text-white transition hover:bg-[#1d211e] ${
-          showLiveBadge ? "invisible" : "visible"
-        }`}
+        aria-label={
+          showLiveRating
+            ? `${liveRating.rating.toFixed(1)} · ${liveRating.reviewCount} · ${fallbackLabel}`
+            : fallbackLabel
+        }
+        className="group inline-flex min-h-14 items-center gap-3 text-left"
       >
-        <span className="flex items-center gap-1 text-[#fcac0a]" aria-hidden="true">
-          <StarIcon />
-          <StarIcon />
-          <StarIcon />
-          <StarIcon />
-          <StarIcon />
+        <span className="inline-flex min-h-14 items-center gap-2.5 bg-[#171a18] px-5 py-3 text-white transition group-hover:bg-[#1d211e]">
+          {showLiveRating ? (
+            <span className="flex items-baseline gap-1 text-sm leading-none">
+              <span className="font-semibold tabular-nums">
+                {liveRating.rating.toFixed(1)}
+              </span>
+              <span className="font-normal tabular-nums text-white/65">
+                ({liveRating.reviewCount.toLocaleString()})
+              </span>
+            </span>
+          ) : (
+            <span className="text-sm font-medium">{fallbackLabel}</span>
+          )}
+          <span
+            className="flex items-center justify-center gap-1.5"
+            aria-hidden="true"
+          >
+            {Array.from({ length: 5 }, (_, index) => (
+              <span
+                className={
+                  index < roundedRating ? "text-[#fcac0a]" : "text-white/20"
+                }
+                key={index}
+              >
+                <StarIcon />
+              </span>
+            ))}
+          </span>
         </span>
-        <span className="text-sm font-medium">{fallbackLabel}</span>
+        <span
+          className="whitespace-nowrap text-base font-normal text-white/70"
+          style={{ fontFamily: "Roboto, Arial, sans-serif" }}
+        >
+          Google Maps
+        </span>
       </a>
 
-      {apiKey && canLoadPlaces ? (
-        <>
-          <Script
-            id="google-maps-places-ui-kit"
-            src={`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&loading=async&libraries=places&v=weekly&auth_referrer_policy=origin`}
-            strategy="afterInteractive"
-            onError={() => setHasError(true)}
-          />
-          <gmp-place-details-compact
-            ref={setDetailsElement}
-            orientation="horizontal"
-            truncation-preferred
-            className={`col-start-1 row-start-1 w-full max-w-[18rem] overflow-hidden rounded-lg transition-opacity ${
-              showLiveBadge
-                ? "pointer-events-auto opacity-100"
-                : "pointer-events-none opacity-0"
-            }`}
-            style={{
-              border: "none",
-              colorScheme: "dark",
-              margin: 0,
-              padding: 0,
-              "--gmp-mat-color-surface": "#171a18",
-              "--gmp-mat-color-on-surface": "#ffffff",
-              "--gmp-mat-color-on-surface-variant": "#b7b9b7",
-              "--gmp-mat-color-primary": "#e4c58f",
-            }}
-          >
-            <gmp-place-details-place-request
-              place={placeId}
-            ></gmp-place-details-place-request>
-            <gmp-place-content-config>
-              <gmp-place-rating></gmp-place-rating>
-              <gmp-place-attribution
-                light-scheme-color="gray"
-                dark-scheme-color="white"
-              ></gmp-place-attribution>
-            </gmp-place-content-config>
-          </gmp-place-details-compact>
-        </>
-      ) : null}
     </div>
   );
 }
