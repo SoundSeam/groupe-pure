@@ -11,7 +11,7 @@ export const contact = {
 export const googleBusiness = {
   placeId: "ChIJYfqnaBUdyUwRhU9gd9XSOJs",
   mapsUrl:
-    "https://www.google.com/maps?place_id=ChIJYfqnaBUdyUwRhU9gd9XSOJs",
+    "https://www.google.com/maps/search/?api=1&query=Groupe%20Pure%20Construction&query_place_id=ChIJYfqnaBUdyUwRhU9gd9XSOJs",
 };
 
 const siteMediaBase =

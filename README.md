@@ -35,13 +35,13 @@ rating and review count for Groupe Pure. Without credentials, it falls back to a
 link that opens the business on Google Maps and never displays stale totals.
 
 1. Create or select a billing-enabled project in Google Cloud.
-2. Enable **Maps JavaScript API** and **Places API (New)**.
+2. Enable **Maps JavaScript API** and **Places UI Kit API**.
 3. Create a browser API key and restrict it:
    - Application restriction: **Websites**
-   - Allowed production referrers: `https://groupepure.ca/*` and
-     `https://www.groupepure.ca/*`
-   - Add `http://localhost:3000/*` only for local development.
-   - API restrictions: **Maps JavaScript API** and **Places API (New)**.
+   - Allowed production referrers: `https://groupepure.ca` and
+     `https://www.groupepure.ca`
+   - Add `http://localhost:3000` only for local development.
+   - API restrictions: **Maps JavaScript API** and **Places UI Kit API**.
 4. Copy `.env.example` to `.env.local` and set
    `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`.
 5. After verifying the key restrictions, set

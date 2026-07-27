@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FaFacebookF, FaInstagram } from "react-icons/fa";
 
 import { ServiceIcon } from "./icons";
+import { ImageWatermark } from "./image-watermark";
 import type { Locale } from "@/lib/i18n";
 import { getLocalizedPath } from "@/lib/i18n";
 import type { Dictionary, Project, Service } from "@/lib/dictionaries";
@@ -87,7 +88,7 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
 export function ServiceCard({ service }: { service: Service }) {
   return (
     <article className="flex flex-col">
-      <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-[#171a18]">
+      <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-[#171a18]">
         {service.video ? (
           <>
             <video
@@ -105,6 +106,7 @@ export function ServiceCard({ service }: { service: Service }) {
               playsInline
               aria-hidden="true"
             />
+            <ImageWatermark />
           </>
         ) : (
           <ServiceIcon service={service.key} />
@@ -143,6 +145,7 @@ export function ServiceFeature({ service, reverse = false }: { service: Service;
           }`}
         />
         <div className="pointer-events-none absolute inset-0 bg-black/20" />
+        <ImageWatermark />
       </div>
       <div>
         <h2 className="text-3xl font-semibold text-white sm:text-5xl">
@@ -187,6 +190,7 @@ export function ProjectCard({
           className="object-cover transition duration-500 group-hover:scale-[1.03]"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/45" />
+        <ImageWatermark />
         <div className="absolute left-5 top-5">
           <h3 className="text-sm font-semibold uppercase text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-base">
             {project.title}

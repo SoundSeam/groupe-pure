@@ -4,6 +4,8 @@ import Image from "next/image";
 import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
+import { ImageWatermark } from "./image-watermark";
+
 type CarouselImage = {
   id?: string;
   title: string;
@@ -130,6 +132,7 @@ export function ProjectCarousel({
                 />
               ) : null}
               <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/45" />
+              {image.image ? <ImageWatermark /> : null}
             </div>
             <h3 className="absolute top-5 left-5 text-sm font-semibold uppercase text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-base">
               {image.title}

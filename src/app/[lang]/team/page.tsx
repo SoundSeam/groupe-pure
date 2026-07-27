@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import { ImageWatermark } from "@/components/image-watermark";
 import { CtaBand, PageHero, SectionShell } from "@/components/site-ui";
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, hasLocale } from "@/lib/i18n";
@@ -60,6 +61,7 @@ export default async function TeamPage({
                   className="object-cover object-top grayscale"
                 />
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/25" />
+                <ImageWatermark />
               </div>
               <div className="pt-8 sm:pt-10">
                 <h2 className="text-2xl font-semibold text-white">
