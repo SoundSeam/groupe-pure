@@ -174,7 +174,7 @@ export default function GoogleReviewBadge({
             alt=""
             width={250}
             height={359}
-            className="h-7 w-auto"
+            className="h-[16.8px] w-auto"
           />
         </span>
       </a>
