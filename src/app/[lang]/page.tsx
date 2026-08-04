@@ -75,8 +75,7 @@ export default async function Home({
       <section className="relative flex min-h-[calc(100vh-4rem)] flex-col justify-end overflow-hidden rounded-b-[3rem] pb-16 text-left sm:pb-20">
         <video
           className="absolute inset-0 h-full w-full object-cover"
-          data-cms-media-key="media:home:hero"
-          poster={assets.heroPoster}
+          data-cms-ignore
           autoPlay
           loop
           muted
@@ -106,11 +105,11 @@ export default async function Home({
       </section>
 
       <div className="py-10 sm:py-12" data-cms-ignore>
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-x-8 gap-y-8 px-6 sm:grid-cols-2 sm:px-10 lg:grid-cols-6 lg:gap-x-6">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap justify-center gap-x-8 gap-y-8 px-6 sm:px-10 lg:flex-nowrap lg:justify-between lg:gap-x-4">
           {partnerLogos.map((logo, index) => (
             <div
               key={logo.src}
-              className="flex h-[68px] min-w-0 items-center justify-center"
+              className="flex h-[68px] min-w-0 basis-full items-center justify-center sm:basis-[calc(50%-0.75rem)] lg:basis-auto"
             >
               <Image
                 src={logo.src}
@@ -118,7 +117,11 @@ export default async function Home({
                 width={logo.width}
                 height={logo.height}
                 sizes="(min-width: 1024px) 240px, (min-width: 640px) 260px, 280px"
-                className={`${index === 0 ? "h-[68px]" : "h-10"} w-auto max-w-full object-contain`}
+                className={`w-auto max-w-full object-contain ${
+                  index === 0
+                    ? "h-[68px] lg:h-[60px]"
+                    : "h-10 lg:h-9"
+                }`}
               />
             </div>
           ))}

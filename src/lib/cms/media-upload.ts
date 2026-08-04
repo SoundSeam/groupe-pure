@@ -2,6 +2,14 @@
 
 import { Upload } from "tus-js-client";
 
+import {
+  cmsUploadFingerprint,
+  storagePathForJob,
+  uploadPercentage,
+  type CmsMediaUploadJob,
+  type CmsUploadStatus,
+} from "@/lib/cms/upload-contract";
+import { getSupabaseConfig } from "@/lib/env";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const BUCKET = "site-media";
@@ -18,7 +26,6 @@ const acceptedTypes = new Set([
   "image/avif",
   "video/mp4",
   "video/webm",
-  "video/quicktime",
 ]);
 
 export type CmsMediaAsset = {
@@ -31,15 +38,19 @@ export type CmsMediaAsset = {
   createdAt: string;
 };
 
-function safeFileName(name: string) {
-  const normalized = name
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+type UploadCmsMediaOptions = {
+  file: File;
+  job: CmsMediaUploadJob;
+  onStatus?: (status: CmsUploadStatus) => void;
+  signal?: AbortSignal;
+};
 
-  return normalized || "media";
+function abortError() {
+  return new DOMException("The upload was cancelled.", "AbortError");
+}
+
+function throwIfAborted(signal?: AbortSignal) {
+  if (signal?.aborted) throw abortError();
 }
 
 function webpName(name: string) {
@@ -57,15 +68,17 @@ function canvasBlob(
   });
 }
 
-async function optimizeImage(file: File) {
+async function optimizeImage(file: File, signal?: AbortSignal) {
   if (!file.type.startsWith("image/") || file.type === "image/gif") {
     return file;
   }
 
   try {
+    throwIfAborted(signal);
     const bitmap = await createImageBitmap(file, {
       imageOrientation: "from-image",
     });
+    throwIfAborted(signal);
     const scale = Math.min(
       1,
       MAX_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height),
@@ -84,125 +97,273 @@ async function optimizeImage(file: File) {
     context.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
     const optimized = await canvasBlob(canvas, "image/webp", IMAGE_QUALITY);
+    throwIfAborted(signal);
     if (!optimized || optimized.size >= file.size * 0.94) return file;
 
     return new File([optimized], webpName(file.name), {
       type: "image/webp",
       lastModified: file.lastModified,
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
     return file;
   }
 }
 
-async function resumableUpload(
-  file: File,
-  storagePath: string,
-  onProgress?: (percentage: number) => void,
-) {
+async function getUploadSession() {
   const supabase = createSupabaseBrowserClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error("Your admin session expired.");
+  return { session, supabase };
+}
 
-  const projectUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!projectUrl) throw new Error("Supabase is not configured.");
+async function standardUpload(
+  file: File,
+  storagePath: string,
+  accessToken: string,
+  publishableKey: string,
+  projectUrl: string,
+  onStatus?: (status: CmsUploadStatus) => void,
+  signal?: AbortSignal,
+) {
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    const path = [BUCKET, ...storagePath.split("/")]
+      .map(encodeURIComponent)
+      .join("/");
+    let settled = false;
+
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener("abort", cancel);
+      callback();
+    };
+    const cancel = () => {
+      request.abort();
+      finish(() => reject(abortError()));
+    };
+
+    request.open("POST", `${projectUrl}/storage/v1/object/${path}`);
+    request.setRequestHeader("authorization", `Bearer ${accessToken}`);
+    request.setRequestHeader("apikey", publishableKey);
+    request.setRequestHeader("x-upsert", "false");
+    request.upload.addEventListener("progress", (event) => {
+      if (!event.lengthComputable) return;
+      onStatus?.({
+        phase: "uploading",
+        bytesUploaded: event.loaded,
+        bytesTotal: event.total,
+        percentage: uploadPercentage(event.loaded, event.total),
+      });
+    });
+    request.addEventListener("load", () => {
+      if (request.status >= 200 && request.status < 300) {
+        finish(resolve);
+        return;
+      }
+
+      let message = `Storage upload failed (${request.status}).`;
+      try {
+        const payload = JSON.parse(request.responseText) as { message?: string };
+        if (payload.message) message = payload.message;
+      } catch {
+        // Keep the status-based fallback for non-JSON responses.
+      }
+      finish(() => reject(new Error(message)));
+    });
+    request.addEventListener("error", () => {
+      finish(() => reject(new Error("The storage upload could not connect.")));
+    });
+    request.addEventListener("abort", () => {
+      finish(() => reject(abortError()));
+    });
+    signal?.addEventListener("abort", cancel, { once: true });
+
+    const form = new FormData();
+    form.append("cacheControl", "31536000");
+    form.append("", file);
+    request.send(form);
+  });
+}
+
+async function resumableUpload(
+  file: File,
+  job: CmsMediaUploadJob,
+  storagePath: string,
+  accessToken: string,
+  projectUrl: string,
+  onStatus?: (status: CmsUploadStatus) => void,
+  signal?: AbortSignal,
+) {
   const projectRef = new URL(projectUrl).hostname.split(".")[0];
 
   await new Promise<void>((resolve, reject) => {
+    let settled = false;
     const upload = new Upload(file, {
       endpoint: `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
       retryDelays: [0, 3000, 5000, 10000, 20000],
       headers: {
-        authorization: `Bearer ${session.access_token}`,
+        authorization: `Bearer ${accessToken}`,
+        "x-upsert": "false",
       },
       uploadDataDuringCreation: true,
       removeFingerprintOnSuccess: true,
       chunkSize: RESUMABLE_THRESHOLD,
+      fingerprint: async () => cmsUploadFingerprint(job, storagePath, file),
       metadata: {
         bucketName: BUCKET,
         objectName: storagePath,
         contentType: file.type,
         cacheControl: "31536000",
       },
-      onError: reject,
+      onError: (error) => finish(() => reject(error)),
       onProgress(bytesUploaded, bytesTotal) {
-        onProgress?.(Math.round((bytesUploaded / bytesTotal) * 100));
+        onStatus?.({
+          phase: "uploading",
+          bytesUploaded,
+          bytesTotal,
+          percentage: uploadPercentage(bytesUploaded, bytesTotal),
+        });
       },
-      onSuccess: () => resolve(),
+      onSuccess: () => finish(resolve),
     });
 
-    void upload.findPreviousUploads().then((uploads) => {
-      if (uploads.length) upload.resumeFromPreviousUpload(uploads[0]);
-      upload.start();
-    });
+    const finish = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      signal?.removeEventListener("abort", cancel);
+      callback();
+    };
+    const cancel = () => {
+      void upload.abort(true).finally(() => {
+        finish(() => reject(abortError()));
+      });
+    };
+    signal?.addEventListener("abort", cancel, { once: true });
+
+    void upload
+      .findPreviousUploads()
+      .then((uploads) => {
+        throwIfAborted(signal);
+        const matchingUpload = uploads.find(
+          (previous) =>
+            previous.metadata?.bucketName === BUCKET &&
+            previous.metadata?.objectName === storagePath,
+        );
+        if (matchingUpload) upload.resumeFromPreviousUpload(matchingUpload);
+        upload.start();
+      })
+      .catch((error) => finish(() => reject(error)));
   });
+}
+
+async function verifyPublicMedia(
+  publicUrl: string,
+  file: File,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(publicUrl, {
+    method: "HEAD",
+    cache: "no-store",
+    signal,
+  });
+  if (!response.ok) throw new Error("The uploaded object could not be verified.");
+
+  const contentType = response.headers.get("content-type")?.split(";")[0];
+  const contentLength = Number(response.headers.get("content-length") ?? "0");
+  if (contentType && contentType !== file.type) {
+    throw new Error("The uploaded object has an unexpected media type.");
+  }
+  if (contentLength > 0 && contentLength !== file.size) {
+    throw new Error("The uploaded object has an unexpected size.");
+  }
 }
 
 export async function uploadCmsMedia({
   file,
-  fieldKey,
-  pagePath,
-  onProgress,
-}: {
-  file: File;
-  fieldKey: string;
-  pagePath: string;
-  onProgress?: (percentage: number) => void;
-}) {
+  job,
+  onStatus,
+  signal,
+}: UploadCmsMediaOptions) {
   if (!acceptedTypes.has(file.type)) {
-    throw new Error("Choose a JPG, PNG, WebP, GIF, AVIF, MP4, WebM, or MOV file.");
+    throw new Error("Choose a JPG, PNG, WebP, GIF, AVIF, MP4, or WebM file.");
   }
   if (file.size > MAX_FILE_SIZE) {
     throw new Error("The file is larger than 50 MB.");
   }
 
-  const optimizedFile = await optimizeImage(file);
-  const locale = pagePath.split("/")[1];
-  const date = new Date().toISOString().slice(0, 10);
-  const storagePath = `${locale}/${date}/${crypto.randomUUID()}-${safeFileName(
-    optimizedFile.name,
-  )}`;
-  const supabase = createSupabaseBrowserClient();
+  throwIfAborted(signal);
+  onStatus?.({ phase: "optimizing" });
+  const optimizedFile = await optimizeImage(file, signal);
+  const storagePath = job.storagePath ?? storagePathForJob(job, optimizedFile.name);
+  job.storagePath = storagePath;
+  const { publishableKey, url: projectUrl } = getSupabaseConfig();
+  const { session, supabase } = await getUploadSession();
 
+  onStatus?.({
+    phase: "uploading",
+    bytesUploaded: 0,
+    bytesTotal: optimizedFile.size,
+    percentage: 0,
+  });
   if (optimizedFile.size > RESUMABLE_THRESHOLD) {
-    await resumableUpload(optimizedFile, storagePath, onProgress);
+    await resumableUpload(
+      optimizedFile,
+      job,
+      storagePath,
+      session.access_token,
+      projectUrl,
+      onStatus,
+      signal,
+    );
   } else {
-    const { error } = await supabase.storage
-      .from(BUCKET)
-      .upload(storagePath, optimizedFile, {
-        cacheControl: "31536000",
-        contentType: optimizedFile.type,
-        upsert: false,
-      });
-    if (error) throw new Error(error.message);
-    onProgress?.(100);
+    await standardUpload(
+      optimizedFile,
+      storagePath,
+      session.access_token,
+      publishableKey,
+      projectUrl,
+      onStatus,
+      signal,
+    );
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
-  const response = await fetch("/api/cms/assets", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      pagePath,
-      fieldKey,
-      fileName: file.name,
-      storagePath,
-      publicUrl: data.publicUrl,
-      mimeType: optimizedFile.type,
-      size: optimizedFile.size,
-    }),
-  });
-  const payload = (await response.json().catch(() => null)) as {
-    asset?: CmsMediaAsset;
-    error?: string;
-  } | null;
 
-  if (!response.ok || !payload?.asset) {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
-    throw new Error(payload?.error ?? "The media could not be recorded.");
+  try {
+    throwIfAborted(signal);
+    onStatus?.({ phase: "verifying" });
+    await verifyPublicMedia(data.publicUrl, optimizedFile, signal);
+    onStatus?.({ phase: "registering" });
+    const response = await fetch("/api/cms/assets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pagePath: job.pagePath,
+        fieldKey: job.fieldKey,
+        fileName: file.name,
+        storagePath,
+        publicUrl: data.publicUrl,
+        mimeType: optimizedFile.type,
+        size: optimizedFile.size,
+      }),
+      signal,
+    });
+    const payload = (await response.json().catch(() => null)) as {
+      asset?: CmsMediaAsset;
+      error?: string;
+    } | null;
+
+    if (!response.ok || !payload?.asset) {
+      throw new Error(payload?.error ?? "The media could not be recorded.");
+    }
+
+    return payload.asset;
+  } catch (error) {
+    await supabase.storage.from(BUCKET).remove([storagePath]).catch(() => undefined);
+    throw error;
   }
-
-  return payload.asset;
 }

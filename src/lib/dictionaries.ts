@@ -53,7 +53,8 @@ const yvonPortrait = "/team/yvon-racine-professional-v3.png";
 const danielPortrait = "/team/daniel-nduwimana-headshot.png";
 
 const architectureVideo = siteMedia("services/architecture.mp4");
-const constructionVideo = siteMedia("services/construction.mp4");
+const constructionVideo =
+  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Construction_worker_framing_atti%E2%80%A6_202608041208.mp4";
 const excavationVideo = siteMedia("services/excavation.mp4");
 
 const frServiceSubcategories = {
@@ -426,10 +427,10 @@ const dictionaries = {
           imageAlt: "Portrait de Mathieu Larivière",
         },
         {
-          name: "Élise Bibeau",
+          name: "Élyse Bibeau",
           title: "Designer",
           image: elisePortrait,
-          imageAlt: "Portrait d’Élise Bibeau",
+          imageAlt: "Portrait d’Élyse Bibeau",
         },
         {
           name: "Daniel Nduwimana",
@@ -786,10 +787,10 @@ const dictionaries = {
           imageAlt: "Portrait of Mathieu Larivière",
         },
         {
-          name: "Élise Bibeau",
+          name: "Élyse Bibeau",
           title: "Designer",
           image: elisePortrait,
-          imageAlt: "Portrait of Élise Bibeau",
+          imageAlt: "Portrait of Élyse Bibeau",
         },
         {
           name: "Daniel Nduwimana",

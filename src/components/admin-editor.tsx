@@ -46,6 +46,11 @@ import {
   uploadCmsMedia,
   type CmsMediaAsset,
 } from "@/lib/cms/media-upload";
+import {
+  createCmsMediaUploadJob,
+  type CmsMediaUploadJob,
+  type CmsUploadStatus,
+} from "@/lib/cms/upload-contract";
 import { isCmsContent } from "@/lib/cms/types";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -68,6 +73,12 @@ type MediaSelection = {
 type MediaLibraryTarget =
   | { kind: "page"; fieldKey: string }
   | { kind: "project"; projectId: string };
+
+type PendingMediaUpload = {
+  file: File;
+  job: CmsMediaUploadJob;
+  target: MediaLibraryTarget;
+};
 
 type Activity =
   | "idle"
@@ -140,6 +151,36 @@ function mediaDisplayName(value: string) {
   } catch {
     return value.split("/").pop() ?? "";
   }
+}
+
+function formatBytes(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function uploadStatusLabel(status: CmsUploadStatus, locale: "en" | "fr") {
+  const labels =
+    locale === "fr"
+      ? {
+          optimizing: "Optimisation du média",
+          uploading: "Téléversement",
+          verifying: "Vérification du fichier",
+          registering: "Enregistrement du média",
+          applying: "Application au projet",
+          saving: "Enregistrement du brouillon",
+          complete: "Média enregistré",
+        }
+      : {
+          optimizing: "Optimizing media",
+          uploading: "Uploading",
+          verifying: "Verifying file",
+          registering: "Registering media",
+          applying: "Applying to project",
+          saving: "Saving draft",
+          complete: "Media saved",
+        };
+  return labels[status.phase];
 }
 
 function decorateFrame(
@@ -506,6 +547,7 @@ export default function AdminEditor({
   const historyIndexRef = useRef(0);
   const mediaSelectionRef = useRef<MediaSelection | null>(null);
   const savePromiseRef = useRef<Promise<number | null> | null>(null);
+  const uploadAbortRef = useRef<AbortController | null>(null);
 
   const [content, setContent] = useState<CmsContent>({});
   const [serverSnapshot, setServerSnapshot] = useState<CmsContent>({});
@@ -536,19 +578,31 @@ export default function AdminEditor({
   const [mediaLibrary, setMediaLibrary] = useState<CmsMediaAsset[]>([]);
   const [mediaLibraryQuery, setMediaLibraryQuery] = useState("");
   const [mediaLibraryLoading, setMediaLibraryLoading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<CmsUploadStatus | null>(null);
+  const [pendingUpload, setPendingUpload] =
+    useState<PendingMediaUpload | null>(null);
+  const [pendingMediaSave, setPendingMediaSave] = useState(false);
+  const [uploadCancelable, setUploadCancelable] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (!projectDialogOpen && !mediaLibraryTarget) return;
 
     const closeDialog = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      if (
+        activity === "saving" ||
+        activity === "uploading" ||
+        activity === "publishing"
+      ) {
+        return;
+      }
       if (mediaLibraryTarget) setMediaLibraryTarget(null);
       else setProjectDialogOpen(false);
     };
     window.addEventListener("keydown", closeDialog);
     return () => window.removeEventListener("keydown", closeDialog);
-  }, [mediaLibraryTarget, projectDialogOpen]);
+  }, [activity, mediaLibraryTarget, projectDialogOpen]);
 
   const selectMedia = useCallback((selection: MediaSelection | null) => {
     mediaSelectionRef.current = selection;
@@ -556,6 +610,10 @@ export default function AdminEditor({
   }, []);
 
   const dirty = JSON.stringify(content) !== JSON.stringify(serverSnapshot);
+  const busy =
+    activity === "saving" ||
+    activity === "uploading" ||
+    activity === "publishing";
 
   const syncHistoryState = useCallback(() => {
     setHistoryState({
@@ -664,7 +722,7 @@ export default function AdminEditor({
       setActivity("idle");
       setMessage("");
     },
-    [previewProjects, pushHistory, setDraftContent],
+    [previewProjects, pushHistory, setDraftContent, setMessage],
   );
 
   const applyHistoryPatch = useCallback(
@@ -722,8 +780,24 @@ export default function AdminEditor({
 
         if (localDraft) {
           try {
-            const parsed = JSON.parse(localDraft) as { content?: unknown };
-            if (isCmsContent(parsed.content)) nextContent = parsed.content;
+            const parsed = JSON.parse(localDraft) as {
+              content?: unknown;
+              revision?: unknown;
+              sharedRevision?: unknown;
+            };
+            const revisionsMatch =
+              parsed.revision === payload.revision &&
+              parsed.sharedRevision === payload.sharedRevision;
+            if (isCmsContent(parsed.content) && revisionsMatch) {
+              nextContent = parsed.content;
+            } else {
+              window.localStorage.removeItem(localKey);
+              setMessage(
+                locale === "fr"
+                  ? "Un ancien brouillon local a été écarté parce que la page a changé ailleurs."
+                  : "A stale local draft was discarded because the page changed elsewhere.",
+              );
+            }
           } catch {
             window.localStorage.removeItem(localKey);
           }
@@ -769,7 +843,7 @@ export default function AdminEditor({
       controller.abort();
       if (frameUpdate) window.cancelAnimationFrame(frameUpdate);
     };
-  }, [applyEditorValue, initialPath, initialProjects]);
+  }, [applyEditorValue, initialPath, initialProjects, locale]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -797,7 +871,7 @@ export default function AdminEditor({
       setActivity("idle");
       setMessage("");
     },
-    [setDraftContent],
+    [setDraftContent, setMessage],
   );
 
   const handleEditStart = useCallback((key: string) => {
@@ -950,6 +1024,7 @@ export default function AdminEditor({
     initialPath,
     publishedRevision,
     publishedSharedRevision,
+    setMessage,
   ]);
 
   useEffect(() => {
@@ -1060,6 +1135,9 @@ export default function AdminEditor({
     setMediaLibraryTarget(target);
     setMediaLibraryQuery("");
     setMediaLibraryLoading(true);
+    setUploadStatus(null);
+    setPendingUpload(null);
+    setPendingMediaSave(false);
     setMessage("");
 
     try {
@@ -1087,7 +1165,7 @@ export default function AdminEditor({
     asset: CmsMediaAsset,
     target = mediaLibraryTarget,
   ) {
-    if (!target) return;
+    if (!target) return false;
     const type = asset.mimeType.startsWith("video/") ? "video" : "image";
 
     if (target.kind === "project") {
@@ -1132,12 +1210,88 @@ export default function AdminEditor({
       pushHistory({ key: target.fieldKey, before, after: next });
     }
 
-    setMediaLibraryTarget(null);
-    setActivity("idle");
     setMessage("");
+    return true;
   }
 
-  async function uploadLibraryFile(file: File) {
+  async function persistAppliedMedia() {
+    setPendingMediaSave(false);
+    setUploadStatus({ phase: "saving" });
+    const savedRevision = await saveDraft();
+    if (savedRevision === null) {
+      setPendingMediaSave(true);
+      return false;
+    }
+
+    setUploadStatus({ phase: "complete" });
+    setMessage("");
+    return true;
+  }
+
+  async function chooseLibraryAsset(asset: CmsMediaAsset) {
+    const target = mediaLibraryTarget;
+    if (!target || busy) return;
+
+    setActivity("uploading");
+    setUploadStatus({ phase: "applying" });
+    if (!applyLibraryAsset(asset, target)) {
+      setActivity("error");
+      setMessage("The selected media could not be applied.");
+      return;
+    }
+    await persistAppliedMedia();
+  }
+
+  async function runPendingUpload(operation: PendingMediaUpload) {
+    if (busy) return;
+
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
+    setUploadCancelable(true);
+    setPendingUpload(operation);
+    setPendingMediaSave(false);
+    setActivity("uploading");
+    setMessage("");
+
+    try {
+      const asset = await uploadCmsMedia({
+        file: operation.file,
+        job: operation.job,
+        onStatus: setUploadStatus,
+        signal: controller.signal,
+      });
+      uploadAbortRef.current = null;
+      setUploadCancelable(false);
+      setPendingUpload(null);
+      setMediaLibrary((current) => [
+        asset,
+        ...current.filter((item) => item.id !== asset.id),
+      ]);
+      setUploadStatus({ phase: "applying" });
+      if (!applyLibraryAsset(asset, operation.target)) {
+        throw new Error("The uploaded media could not be applied.");
+      }
+      await persistAppliedMedia();
+    } catch (error) {
+      uploadAbortRef.current = null;
+      setUploadCancelable(false);
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setPendingUpload(null);
+        setUploadStatus(null);
+        setActivity("idle");
+        setMessage(
+          locale === "fr" ? "Téléversement annulé." : "Upload cancelled.",
+        );
+        return;
+      }
+      setActivity("error");
+      setMessage(
+        error instanceof Error ? error.message : "The media could not upload.",
+      );
+    }
+  }
+
+  function uploadLibraryFile(file: File) {
     const target = mediaLibraryTarget;
     if (!target) return;
 
@@ -1145,30 +1299,27 @@ export default function AdminEditor({
       target.kind === "page"
         ? target.fieldKey
         : `${PROJECTS_CONTENT_KEY}:${target.projectId}`;
-    setActivity("uploading");
-    setUploadProgress(0);
-    setMessage("");
-
-    try {
-      const asset = await uploadCmsMedia({
-        file,
+    const operation: PendingMediaUpload = {
+      file,
+      target,
+      job: createCmsMediaUploadJob({
         fieldKey,
         pagePath: initialPath,
-        onProgress: setUploadProgress,
-      });
-      setMediaLibrary((current) => [
-        asset,
-        ...current.filter((item) => item.id !== asset.id),
-      ]);
-      applyLibraryAsset(asset, target);
-    } catch (error) {
-      setActivity("error");
-      setMessage(
-        error instanceof Error ? error.message : "The media could not upload.",
-      );
-    } finally {
-      setUploadProgress(0);
+      }),
+    };
+    void runPendingUpload(operation);
+  }
+
+  function retryMediaOperation() {
+    if (pendingUpload) {
+      void runPendingUpload(pendingUpload);
+    } else if (pendingMediaSave) {
+      void persistAppliedMedia();
     }
+  }
+
+  function cancelUpload() {
+    uploadAbortRef.current?.abort();
   }
 
   function addProject(category: ProjectCategory) {
@@ -1239,15 +1390,20 @@ export default function AdminEditor({
   }
 
   async function signOut() {
-    await createSupabaseBrowserClient().auth.signOut();
-    window.location.assign("/admin");
+    if (signingOut) return;
+
+    setSigningOut(true);
+
+    try {
+      await createSupabaseBrowserClient().auth.signOut({ scope: "global" });
+    } catch (error) {
+      console.error("Admin sign-out failed.", error);
+    } finally {
+      window.location.replace("/admin");
+    }
   }
 
-  const busy =
-    activity === "saving" ||
-    activity === "uploading" ||
-    activity === "publishing";
-  const selectedAccept = "image/*,video/mp4,video/webm,video/quicktime";
+  const selectedAccept = "image/jpeg,image/png,image/webp,image/gif,image/avif,video/mp4,video/webm";
   const otherLocale = locale === "fr" ? "en" : "fr";
   const equivalentPath = `/${otherLocale}${initialPath.replace(
     /^\/(en|fr)/,
@@ -1271,6 +1427,9 @@ export default function AdminEditor({
     : false;
   const normalizedLibraryQuery = mediaLibraryQuery.trim().toLowerCase();
   const actionLabels = adminActionLabels[locale];
+  const uploadStatusText = uploadStatus
+    ? uploadStatusLabel(uploadStatus, locale)
+    : "";
   const filteredMediaLibrary = normalizedLibraryQuery
     ? mediaLibrary.filter(
         (asset) =>
@@ -1278,6 +1437,20 @@ export default function AdminEditor({
           asset.mimeType.toLowerCase().includes(normalizedLibraryQuery),
       )
     : mediaLibrary;
+
+  if (signingOut) {
+    return (
+      <main
+        className="grid h-screen place-items-center bg-[#101211] text-white"
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-2 text-sm text-white/60">
+          <SpinnerGap className="h-4 w-4 animate-spin" aria-hidden="true" />
+          <span>{locale === "fr" ? "Déconnexion…" : "Signing out…"}</span>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex h-screen flex-col overflow-hidden bg-[#080a09]">
@@ -1294,6 +1467,7 @@ export default function AdminEditor({
           <select
             aria-label="Page"
             value={initialPath}
+            disabled={busy}
             onChange={(event) => {
               window.location.assign(`/admin${event.target.value}`);
             }}
@@ -1312,10 +1486,11 @@ export default function AdminEditor({
         </div>
         <button
           type="button"
+          disabled={busy}
           data-tooltip={otherLocale.toUpperCase()}
           aria-label={otherLocale.toUpperCase()}
           onClick={() => window.location.assign(`/admin${equivalentPath}`)}
-          className="admin-tooltip flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold uppercase text-white/60 transition hover:bg-white/8 hover:text-white"
+          className="admin-tooltip flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold uppercase text-white/60 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
         >
           {otherLocale}
         </button>
@@ -1364,8 +1539,12 @@ export default function AdminEditor({
             title={
               activity === "error"
                 ? message
-                : activity === "uploading"
-                  ? `Uploading media${uploadProgress ? ` · ${uploadProgress}%` : ""}`
+                : uploadStatus
+                  ? `${uploadStatusText}${
+                      uploadStatus.percentage !== undefined
+                        ? ` · ${uploadStatus.percentage}%`
+                        : ""
+                    }`
                   : activity === "saving"
                     ? "Saving draft automatically"
                 : dirty
@@ -1417,6 +1596,7 @@ export default function AdminEditor({
           <IconButton
             label={actionLabels.signOut}
             title={email}
+            disabled={busy}
             onClick={() => void signOut()}
             showLabel
           >
@@ -1826,7 +2006,7 @@ export default function AdminEditor({
             onMouseDown={(event) => {
               if (
                 event.currentTarget === event.target &&
-                activity !== "uploading"
+                !busy
               ) {
                 setMediaLibraryTarget(null);
               }
@@ -1838,24 +2018,27 @@ export default function AdminEditor({
                   value={mediaLibraryQuery}
                   onChange={(event) => setMediaLibraryQuery(event.target.value)}
                   placeholder={locale === "fr" ? "Rechercher" : "Search"}
+                  disabled={busy}
                   autoFocus
                   className="h-9 min-w-0 flex-1 rounded-sm border border-white/12 bg-white/[0.035] px-3 text-sm outline-none placeholder:text-white/30 focus:border-[#6f8dff]"
                 />
                 <button
                   type="button"
-                  disabled={activity === "uploading"}
+                  disabled={busy}
                   onClick={() => mediaFileInputRef.current?.click()}
                   className="h-9 rounded-sm bg-white px-4 text-sm font-semibold text-[#101211] transition hover:bg-white/90 disabled:opacity-40"
                 >
-                  {activity === "uploading"
-                    ? `${uploadProgress}%`
+                  {busy && uploadStatus
+                    ? uploadStatus.percentage !== undefined
+                      ? `${uploadStatus.percentage}%`
+                      : uploadStatusText
                     : locale === "fr"
                       ? "Importer"
                       : "Upload"}
                 </button>
                 <button
                   type="button"
-                  disabled={activity === "uploading"}
+                  disabled={busy}
                   aria-label={locale === "fr" ? "Fermer" : "Close"}
                   data-tooltip={locale === "fr" ? "Fermer" : "Close"}
                   onClick={() => setMediaLibraryTarget(null)}
@@ -1864,6 +2047,81 @@ export default function AdminEditor({
                   <X className="h-4 w-4" />
                 </button>
               </div>
+
+              {uploadStatus || message ? (
+                <div
+                  className="shrink-0 border-b border-white/10 px-3 py-3"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {uploadStatus ? (
+                    <div>
+                      <div className="flex items-center justify-between gap-4 text-xs">
+                        <span className="font-medium text-white/75">
+                          {uploadStatusText}
+                        </span>
+                        {uploadStatus.bytesUploaded !== undefined &&
+                        uploadStatus.bytesTotal !== undefined ? (
+                          <span className="text-white/40">
+                            {formatBytes(uploadStatus.bytesUploaded)} / {" "}
+                            {formatBytes(uploadStatus.bytesTotal)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {uploadStatus.percentage !== undefined ? (
+                        <div
+                          className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"
+                          aria-label={uploadStatusText}
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={uploadStatus.percentage}
+                          role="progressbar"
+                        >
+                          <div
+                            className="h-full rounded-full bg-[#e4c58f] transition-[width]"
+                            style={{ width: `${uploadStatus.percentage}%` }}
+                          />
+                        </div>
+                      ) : busy ? (
+                        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <div className="h-full w-1/3 animate-pulse rounded-full bg-[#e4c58f]" />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {message ? (
+                    <p className="mt-2 text-xs leading-5 text-red-200">
+                      {message}
+                    </p>
+                  ) : null}
+
+                  {activity === "uploading" && uploadCancelable ? (
+                    <button
+                      type="button"
+                      onClick={cancelUpload}
+                      className="mt-2 text-xs font-medium text-white/55 underline decoration-white/25 underline-offset-4 hover:text-white"
+                    >
+                      {locale === "fr" ? "Annuler" : "Cancel upload"}
+                    </button>
+                  ) : activity === "error" &&
+                    (pendingUpload || pendingMediaSave) ? (
+                    <button
+                      type="button"
+                      onClick={retryMediaOperation}
+                      className="mt-2 rounded-sm bg-white px-3 py-1.5 text-xs font-semibold text-[#101211] hover:bg-white/90"
+                    >
+                      {pendingMediaSave
+                        ? locale === "fr"
+                          ? "Réessayer l’enregistrement"
+                          : "Retry saving"
+                        : locale === "fr"
+                          ? "Réessayer le téléversement"
+                          : "Retry upload"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="min-h-0 flex-1 overflow-y-auto p-3">
                 {mediaLibraryLoading ? (
@@ -1876,8 +2134,8 @@ export default function AdminEditor({
                       <button
                         key={asset.id}
                         type="button"
-                        disabled={activity === "uploading"}
-                        onClick={() => applyLibraryAsset(asset)}
+                        disabled={busy}
+                        onClick={() => void chooseLibraryAsset(asset)}
                         className="group/library overflow-hidden rounded-sm border border-white/10 bg-white/[0.025] text-left transition hover:border-[#6f8dff] focus-visible:border-[#6f8dff] focus-visible:outline-none disabled:opacity-40"
                       >
                         <span className="block aspect-[4/3] overflow-hidden bg-black/25">

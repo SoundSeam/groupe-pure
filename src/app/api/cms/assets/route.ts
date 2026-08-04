@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 
 import { getAdminIdentity } from "@/lib/auth";
 import {
+  CmsAssetVerificationError,
+  verifyCmsAssetObject,
+} from "@/lib/cms/asset-verification";
+import {
   assetRetentionDeadline,
   cleanupExpiredCmsAssets,
 } from "@/lib/cms/assets";
@@ -18,7 +22,6 @@ const acceptedTypes = new Set([
   "image/avif",
   "video/mp4",
   "video/webm",
-  "video/quicktime",
 ]);
 
 function validPagePath(path: string) {
@@ -51,11 +54,11 @@ export async function GET() {
     return NextResponse.json({ assets: [] });
   }
 
-  await cleanupExpiredCmsAssets().catch(() => undefined);
-
   const assets = await getPrisma().cmsAsset.findMany({
     where: {
       OR: [
+        { pageId: null },
+        { usages: { some: {} } },
         { retainedUntil: null },
         { retainedUntil: { gt: new Date() } },
       ],
@@ -126,39 +129,62 @@ export async function POST(request: Request) {
     size > 50 * 1024 * 1024 ||
     !validPublicUrl(publicUrl, storagePath)
   ) {
-    return NextResponse.json({ error: "Invalid media record." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid media record.", code: "INVALID_MEDIA_RECORD" },
+      { status: 400 },
+    );
+  }
+
+  try {
+    await verifyCmsAssetObject({ publicUrl, mimeType, size });
+  } catch (error) {
+    if (error instanceof CmsAssetVerificationError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: 422 },
+      );
+    }
+    return NextResponse.json(
+      {
+        error: "The uploaded object could not be verified.",
+        code: "OBJECT_VERIFICATION_FAILED",
+      },
+      { status: 502 },
+    );
   }
 
   const locale = pagePath.split("/")[1]!;
   const prisma = getPrisma();
-  const page = await prisma.cmsPage.upsert({
-    where: { path: pagePath },
-    update: {},
-    create: { path: pagePath, locale },
-  });
-  const asset = await prisma.cmsAsset.upsert({
-    where: { storagePath },
-    update: {
-      pageId: page.id,
-      fieldKey,
-      fileName,
-      publicUrl,
-      mimeType,
-      size,
-      uploadedBy: identity.email,
-      retainedUntil: assetRetentionDeadline(),
-    },
-    create: {
-      pageId: page.id,
-      fieldKey,
-      fileName,
-      storagePath,
-      publicUrl,
-      mimeType,
-      size,
-      uploadedBy: identity.email,
-      retainedUntil: assetRetentionDeadline(),
-    },
+  const asset = await prisma.$transaction(async (transaction) => {
+    const page = await transaction.cmsPage.upsert({
+      where: { path: pagePath },
+      update: {},
+      create: { path: pagePath, locale },
+    });
+    return transaction.cmsAsset.upsert({
+      where: { storagePath },
+      update: {
+        pageId: page.id,
+        fieldKey,
+        fileName,
+        publicUrl,
+        mimeType,
+        size,
+        uploadedBy: identity.email,
+        retainedUntil: assetRetentionDeadline(),
+      },
+      create: {
+        pageId: page.id,
+        fieldKey,
+        fileName,
+        storagePath,
+        publicUrl,
+        mimeType,
+        size,
+        uploadedBy: identity.email,
+        retainedUntil: assetRetentionDeadline(),
+      },
+    });
   });
 
   return NextResponse.json({
@@ -172,4 +198,26 @@ export async function POST(request: Request) {
       createdAt: asset.createdAt.toISOString(),
     },
   });
+}
+
+export async function DELETE() {
+  if (!(await getAdminIdentity())) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+  if (!isDatabaseConfigured() || !isSupabaseConfigured()) {
+    return NextResponse.json(
+      { error: "Media storage is not configured." },
+      { status: 503 },
+    );
+  }
+
+  try {
+    const removed = await cleanupExpiredCmsAssets();
+    return NextResponse.json({ removed });
+  } catch {
+    return NextResponse.json(
+      { error: "Expired media cleanup failed." },
+      { status: 500 },
+    );
+  }
 }

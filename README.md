@@ -28,6 +28,36 @@ other page redirect to the homepage in the requested or preferred language.
 Set `FULL_SITE_ENABLED=true` to make every page available. Missing, empty, and
 `false` values keep secondary pages hidden.
 
+## CMS media verification
+
+CMS media uploads report separate optimization, transfer, verification,
+registration, application, and draft-save phases. A replacement is complete
+only after the draft API returns a new revision. Supported video uploads are
+MP4 and WebM; MOV is intentionally rejected because browser codec support
+cannot be guaranteed.
+
+Run the deterministic checks with:
+
+```bash
+npm run test:unit
+npm run lint
+npm run build
+```
+
+The authenticated browser workflow must run against an isolated CMS test
+environment, never production. Configure these variables outside `.env`:
+
+```bash
+CMS_E2E_BASE_URL=https://cms-staging.example.com
+CMS_E2E_EMAIL=editor@example.com
+CMS_E2E_PASSWORD=...
+npm run test:e2e
+```
+
+Set `CMS_E2E_ALLOW_PUBLISH=true` only when the isolated environment may publish
+test content. Deploy pending Prisma migrations before deploying application
+code that reads the asset-usage relation.
+
 ## Live Google rating
 
 The home page uses Google Maps Platform's Places library to load the current
