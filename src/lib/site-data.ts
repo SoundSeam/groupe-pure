@@ -25,8 +25,8 @@ export const assets = {
   logo: "/brand/logo-vertical.png",
   headerLogo: "/brand/logo-horizontal.png",
   contactBuilding: siteMedia("content/building.webp"),
-  heroVideo:
-    "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/WebsiteHeroV3+(1).mp4",
+  heroVideo: siteMedia("hero/hero.mp4"),
+  heroPoster: siteMedia("hero/hero-poster.webp"),
   territoryImage: siteMedia("content/building.webp"),
   apchqLogo: "/partner-logos/apchq-badge.png",
 };
