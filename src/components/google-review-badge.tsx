@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import {
   useCallback,
   useEffect,
@@ -164,18 +163,6 @@ export default function GoogleReviewBadge({
               <StarIcon />
             </span>
           ))}
-        </span>
-        <span
-          className="ml-1 flex h-8 w-6 shrink-0 items-center justify-center"
-          aria-hidden="true"
-        >
-          <Image
-            src="/brand/google-maps-icon.webp"
-            alt=""
-            width={250}
-            height={359}
-            className="h-[16.8px] w-auto"
-          />
         </span>
       </a>
     </div>
