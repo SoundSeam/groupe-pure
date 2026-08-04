@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   useCallback,
   useEffect,
@@ -135,45 +136,48 @@ export default function GoogleReviewBadge({
             ? `${liveRating.rating.toFixed(1)} · ${liveRating.reviewCount} · ${fallbackLabel}`
             : fallbackLabel
         }
-        className="group inline-flex min-h-14 items-center gap-3 text-left"
+        className="group inline-flex min-h-14 items-center gap-2.5 bg-[#171a18] px-5 py-3 text-left text-white transition hover:bg-[#1d211e]"
       >
-        <span className="inline-flex min-h-14 items-center gap-2.5 bg-[#171a18] px-5 py-3 text-white transition group-hover:bg-[#1d211e]">
-          {showLiveRating ? (
-            <span className="flex items-baseline gap-1 text-sm leading-none">
-              <span className="font-semibold tabular-nums">
-                {liveRating.rating.toFixed(1)}
-              </span>
-              <span className="font-normal tabular-nums text-white/65">
-                ({liveRating.reviewCount.toLocaleString()})
-              </span>
+        {showLiveRating ? (
+          <span className="flex items-baseline gap-1 text-sm leading-none">
+            <span className="font-semibold tabular-nums">
+              {liveRating.rating.toFixed(1)}
             </span>
-          ) : (
-            <span className="text-sm font-medium">{fallbackLabel}</span>
-          )}
-          <span
-            className="flex items-center justify-center gap-1.5"
-            aria-hidden="true"
-          >
-            {Array.from({ length: 5 }, (_, index) => (
-              <span
-                className={
-                  index < roundedRating ? "text-[#fcac0a]" : "text-white/20"
-                }
-                key={index}
-              >
-                <StarIcon />
-              </span>
-            ))}
+            <span className="font-normal tabular-nums text-white/65">
+              ({liveRating.reviewCount.toLocaleString()})
+            </span>
           </span>
+        ) : (
+          <span className="text-sm font-medium">{fallbackLabel}</span>
+        )}
+        <span
+          className="flex items-center justify-center gap-1.5"
+          aria-hidden="true"
+        >
+          {Array.from({ length: 5 }, (_, index) => (
+            <span
+              className={
+                index < roundedRating ? "text-[#fcac0a]" : "text-white/20"
+              }
+              key={index}
+            >
+              <StarIcon />
+            </span>
+          ))}
         </span>
         <span
-          className="whitespace-nowrap text-base font-normal text-white/70"
-          style={{ fontFamily: "Roboto, Arial, sans-serif" }}
+          className="ml-1 flex h-8 w-6 shrink-0 items-center justify-center"
+          aria-hidden="true"
         >
-          Google Maps
+          <Image
+            src="/brand/google-maps-icon.webp"
+            alt=""
+            width={250}
+            height={359}
+            className="h-7 w-auto"
+          />
         </span>
       </a>
-
     </div>
   );
 }
