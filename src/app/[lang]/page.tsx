@@ -76,7 +76,6 @@ export default async function Home({
         <video
           className="absolute inset-0 h-full w-full object-cover"
           data-cms-ignore
-          poster={assets.heroPoster}
           autoPlay
           loop
           muted

@@ -356,6 +356,97 @@ const dictionaries = {
       eyebrow: "Notre équipe",
       title: "Des expertises complémentaires, une même direction.",
       lead: "Derrière chaque projet, une équipe engagée rassemble la vision, la technique et le chantier pour faire avancer chaque décision avec clarté.",
+      careers: {
+        eyebrow: "Carrières",
+        title: "Votre prochain projet pourrait commencer ici.",
+        lead:
+          "Vous aimez le travail bien fait, les idées claires et les équipes qui avancent ensemble? Nous voulons connaître votre parcours — même si aucun poste précis n’est affiché.",
+        highlights: [
+          "Des projets complets et variés",
+          "Une collaboration sans silos",
+          "Des standards élevés, sur le terrain comme au bureau",
+        ],
+        formTitle: "Présentez-vous",
+        formNote:
+          "Quelques minutes suffisent. Joignez votre CV ou votre portfolio; notre équipe communiquera avec vous si une occasion correspond à votre profil.",
+      },
+      applicationForm: {
+        name: "Nom complet",
+        email: "Courriel",
+        phone: "Téléphone",
+        projectType: "Domaine",
+        projectTypePlaceholder: "Choisir un domaine",
+        subcategory: "Rôle recherché",
+        subcategoryPlaceholder: "Choisir un rôle",
+        subcategoryDisabledPlaceholder: "Choisir d’abord un domaine",
+        budgetRange: "Disponibilité",
+        budgetRangePlaceholder: "Indiquer votre disponibilité",
+        message: "Parlez-nous brièvement de votre parcours et de ce que vous aimeriez accomplir avec nous",
+        attachment: "CV ou portfolio — PDF, Word ou image (20 Mo max.)",
+        submit: "Envoyer ma candidature",
+        sending: "Envoi en cours…",
+        required: "Ce champ est requis.",
+        invalidEmail: "Entrez une adresse courriel valide.",
+        invalidAttachment:
+          "Ajoutez un fichier PDF, Word, HEIC, JPG, PNG ou WebP valide.",
+        attachmentTooLarge: "Le fichier doit peser 20 Mo ou moins.",
+        submissionError:
+          "L’envoi n’a pas fonctionné. Vérifiez votre connexion et réessayez.",
+        rateLimited:
+          "Trop de demandes ont été envoyées récemment. Réessayez dans une heure.",
+        verificationError:
+          "La vérification de sécurité a expiré ou échoué. Réessayez.",
+        verificationUnavailable:
+          "La vérification de sécurité ne peut pas charger. Désactivez temporairement votre bloqueur de contenu ou écrivez-nous directement.",
+        success:
+          "Merci — votre candidature a bien été transmise à notre équipe.",
+        options: {
+          architecture: "Architecture et design",
+          construction: "Construction",
+          excavation: "Excavation",
+        },
+        subcategoryOptions: {
+          architecture: [
+            "Technologue en architecture",
+            "Designer intérieur",
+            "Chargé·e de projet",
+            "Stagiaire",
+            "Candidature spontanée",
+          ],
+          construction: [
+            "Chargé·e de projet",
+            "Surintendant·e de chantier",
+            "Charpentier·ère-menuisier·ère",
+            "Métier spécialisé",
+            "Manœuvre",
+            "Candidature spontanée",
+          ],
+          excavation: [
+            "Opérateur·trice de machinerie",
+            "Chauffeur·euse classe 1 ou 3",
+            "Chargé·e de projet",
+            "Manœuvre",
+            "Candidature spontanée",
+          ],
+        },
+        budgetOptions: [
+          "Dès maintenant",
+          "Dans moins de 30 jours",
+          "Dans 1 à 3 mois",
+          "Ouvert·e aux occasions futures",
+        ],
+        emailSubject: "Nouvelle candidature",
+        emailBodyLabels: {
+          name: "Nom",
+          email: "Courriel",
+          phone: "Téléphone",
+          projectType: "Domaine",
+          subcategory: "Rôle recherché",
+          budgetRange: "Disponibilité",
+          attachment: "CV ou portfolio",
+          message: "Présentation",
+        },
+      },
       aboutTitle: "À propos",
       aboutBody:
         "Groupe Pure réunit architecture, construction et excavation sous une même direction afin de préserver la cohérence de chaque projet, de la première intention à la livraison finale. Notre approche clé en main conjugue une vision claire, une exécution rigoureuse et une expertise terrain reconnue pour réaliser des projets corporatifs, commerciaux et résidentiels haut de gamme.",
@@ -716,6 +807,96 @@ const dictionaries = {
       eyebrow: "Our team",
       title: "Complementary expertise, one shared direction.",
       lead: "Behind every project, a committed team brings vision, technical thinking and field execution together so each decision moves forward clearly.",
+      careers: {
+        eyebrow: "Careers",
+        title: "Your next project could start here.",
+        lead:
+          "If you care about thoughtful work, clear ideas and teams that move forward together, we want to hear your story — even when no specific position is posted.",
+        highlights: [
+          "Complete, varied projects",
+          "Collaboration without silos",
+          "High standards, on site and in the office",
+        ],
+        formTitle: "Introduce yourself",
+        formNote:
+          "It only takes a few minutes. Attach your résumé or portfolio and our team will reach out if an opportunity matches your profile.",
+      },
+      applicationForm: {
+        name: "Full name",
+        email: "Email",
+        phone: "Phone",
+        projectType: "Discipline",
+        projectTypePlaceholder: "Select a discipline",
+        subcategory: "Desired role",
+        subcategoryPlaceholder: "Select a role",
+        subcategoryDisabledPlaceholder: "Select a discipline first",
+        budgetRange: "Availability",
+        budgetRangePlaceholder: "Select your availability",
+        message: "Tell us briefly about your experience and what you would like to accomplish with us",
+        attachment: "Résumé or portfolio — PDF, Word or image (20 MB max.)",
+        submit: "Submit my application",
+        sending: "Sending…",
+        required: "This field is required.",
+        invalidEmail: "Enter a valid email address.",
+        invalidAttachment:
+          "Add a valid PDF, Word, HEIC, JPG, PNG or WebP file.",
+        attachmentTooLarge: "The file must be 20 MB or smaller.",
+        submissionError:
+          "The application could not be sent. Check your connection and try again.",
+        rateLimited:
+          "Too many requests were sent recently. Please try again in one hour.",
+        verificationError:
+          "The security verification expired or failed. Please try again.",
+        verificationUnavailable:
+          "The security verification could not load. Temporarily disable your content blocker or contact us directly.",
+        success: "Thank you — your application was sent to our team.",
+        options: {
+          architecture: "Architecture and design",
+          construction: "Construction",
+          excavation: "Excavation",
+        },
+        subcategoryOptions: {
+          architecture: [
+            "Architectural technologist",
+            "Interior designer",
+            "Project manager",
+            "Intern",
+            "General application",
+          ],
+          construction: [
+            "Project manager",
+            "Site superintendent",
+            "Carpenter",
+            "Skilled trade",
+            "General labourer",
+            "General application",
+          ],
+          excavation: [
+            "Equipment operator",
+            "Class 1 or 3 driver",
+            "Project manager",
+            "General labourer",
+            "General application",
+          ],
+        },
+        budgetOptions: [
+          "Immediately",
+          "Within 30 days",
+          "In 1–3 months",
+          "Open to future opportunities",
+        ],
+        emailSubject: "New application",
+        emailBodyLabels: {
+          name: "Name",
+          email: "Email",
+          phone: "Phone",
+          projectType: "Discipline",
+          subcategory: "Desired role",
+          budgetRange: "Availability",
+          attachment: "Résumé or portfolio",
+          message: "Introduction",
+        },
+      },
       aboutTitle: "About",
       aboutBody:
         "Groupe Pure brings architecture, construction and excavation together under one direction to preserve the cohesion of every project, from first intent to final delivery. Our turnkey approach combines clear vision, disciplined execution and recognized field expertise to deliver corporate, commercial and high-end residential projects.",

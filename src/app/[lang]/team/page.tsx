@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+import ContactForm from "@/components/contact-form";
 import { ImageWatermark } from "@/components/image-watermark";
 import { CtaBand, PageHero, SectionShell } from "@/components/site-ui";
 import { getDictionary } from "@/lib/dictionaries";
@@ -47,7 +48,58 @@ export default async function TeamPage({
         title={dict.teamPage.title}
         lead={dict.teamPage.lead}
       />
-      <SectionShell className="pt-0">
+      <SectionShell className="pt-4 sm:pt-8">
+        <section
+          aria-labelledby="careers-title"
+          className="overflow-hidden rounded-2xl border border-white/10 bg-[#171a18]"
+        >
+          <div className="grid lg:grid-cols-[0.78fr_1.22fr]">
+            <div className="flex flex-col justify-between border-b border-white/10 p-7 sm:p-10 lg:border-r lg:border-b-0 lg:p-12">
+              <div>
+                <p className="text-sm font-medium text-[#e4c58f]">
+                  {dict.teamPage.careers.eyebrow}
+                </p>
+                <h2
+                  id="careers-title"
+                  className="mt-4 text-3xl font-semibold text-white sm:text-5xl sm:leading-[1.08]"
+                >
+                  {dict.teamPage.careers.title}
+                </h2>
+                <p className="mt-6 max-w-xl text-base font-light leading-7 text-white/70 sm:text-lg sm:leading-8">
+                  {dict.teamPage.careers.lead}
+                </p>
+              </div>
+              <ul className="mt-10 grid gap-3 border-t border-white/10 pt-7 text-sm text-white/65 sm:grid-cols-3 lg:grid-cols-1">
+                {dict.teamPage.careers.highlights.map((highlight) => (
+                  <li key={highlight} className="flex items-center gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e4c58f]"
+                    />
+                    {highlight}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-[#101211]/45 p-7 sm:p-10 lg:p-12">
+              <div className="mb-7">
+                <h3 className="text-xl font-semibold text-white sm:text-2xl">
+                  {dict.teamPage.careers.formTitle}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-white/55">
+                  {dict.teamPage.careers.formNote}
+                </p>
+              </div>
+              <ContactForm
+                labels={dict.teamPage.applicationForm}
+                locale={lang}
+                submissionType="application"
+              />
+            </div>
+          </div>
+        </section>
+      </SectionShell>
+      <SectionShell className="pt-8 sm:pt-12">
         <div className="grid gap-x-5 gap-y-[3.75rem] md:grid-cols-2 lg:grid-cols-3">
           {dict.teamPage.members.map((member, index) => (
             <article key={member.name}>

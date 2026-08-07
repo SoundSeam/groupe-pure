@@ -238,3 +238,40 @@ Deno.test("escapes visitor content in the internal email", () => {
     "A quarantined lead is not clearly marked.",
   );
 });
+
+Deno.test("formats career applications distinctly from project inquiries", () => {
+  const content = emailContent(
+    {
+      idempotency_key: "51060f96-f97a-4b82-9b75-1d9b1bc88b58",
+      locale: "fr",
+      name: "Candidate Test",
+      visitor_email: "candidate@example.com",
+      phone: "514-555-0100",
+      project_type: "construction",
+      subcategory: "application::Chargé·e de projet",
+      budget_range: "Dans moins de 30 jours",
+      message: "Je souhaite contribuer aux projets de Groupe Pure.",
+      attachment_name: "cv.pdf",
+      attachment_type: "application/pdf",
+      attachment_size: 1024,
+      storage_path: "applications/cv.pdf",
+      status: "PENDING",
+      decision: "ACCEPTED",
+      decision_reasons: [],
+    },
+    null,
+  );
+
+  assert(
+    content.subject.startsWith("Nouvelle candidature"),
+    "The application subject was not used.",
+  );
+  assert(
+    content.text.includes("Rôle recherché: Chargé·e de projet"),
+    "The application role was not formatted correctly.",
+  );
+  assert(
+    content.text.includes("Disponibilité: Dans moins de 30 jours"),
+    "The application availability was not formatted correctly.",
+  );
+});

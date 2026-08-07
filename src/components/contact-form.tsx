@@ -64,6 +64,7 @@ type ContactFormProps = {
   alignSubmitRight?: boolean;
   labels: ContactFormLabels;
   locale: Locale;
+  submissionType?: "contact" | "application";
 };
 
 type Errors = Partial<
@@ -186,6 +187,7 @@ export default function ContactForm({
   alignSubmitRight = false,
   labels,
   locale,
+  submissionType = "contact",
 }: ContactFormProps) {
   const [projectType, setProjectType] = useState<ProjectType | "">("");
   const [subcategory, setSubcategory] = useState("");
@@ -388,7 +390,10 @@ export default function ContactForm({
             email,
             phone,
             projectType: projectTypeValue,
-            subcategory: subcategoryValue,
+            subcategory:
+              submissionType === "application"
+                ? `application::${subcategoryValue}`
+                : subcategoryValue,
             budgetRange,
             message,
             website,

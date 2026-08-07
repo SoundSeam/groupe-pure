@@ -920,21 +920,25 @@ export function emailContent(
   submission: ContactSubmission,
   attachmentUrl: string | null,
 ) {
+  const applicationPrefix = "application::";
+  const isApplication = submission.subcategory.startsWith(applicationPrefix);
   const projectLabels: Record<ProjectType, string> = {
     architecture: "Architecture",
     construction: "Construction",
     excavation: "Excavation",
   };
   const labels = {
-    subject: "Nouvelle demande de projet",
+    subject: isApplication
+      ? "Nouvelle candidature"
+      : "Nouvelle demande de projet",
     name: "Nom",
     email: "Courriel",
     phone: "Téléphone",
-    projectType: "Type de chantier",
-    subcategory: "Sous-catégorie",
-    budget: "Budget prévu",
-    attachment: "Pièce jointe",
-    message: "Message",
+    projectType: isApplication ? "Domaine" : "Type de chantier",
+    subcategory: isApplication ? "Rôle recherché" : "Sous-catégorie",
+    budget: isApplication ? "Disponibilité" : "Budget prévu",
+    attachment: isApplication ? "CV ou portfolio" : "Pièce jointe",
+    message: isApplication ? "Présentation" : "Message",
     download: "Télécharger la pièce jointe",
     review: "Contrôle anti-abus",
     accepted: "Validé",
@@ -943,10 +947,12 @@ export function emailContent(
       "Cette demande présente des signaux inhabituels. Vérifiez son contenu avant d’y répondre.",
   };
   const projectLabel = projectLabels[submission.project_type];
-  const subcategory = submission.locale === "en"
-    ? SUBCATEGORY_TRANSLATIONS[submission.subcategory] ||
-      submission.subcategory
+  const rawSubcategory = isApplication
+    ? submission.subcategory.slice(applicationPrefix.length)
     : submission.subcategory;
+  const subcategory = !isApplication && submission.locale === "en"
+    ? SUBCATEGORY_TRANSLATIONS[rawSubcategory] || rawSubcategory
+    : rawSubcategory;
   const budget = submission.locale === "en"
     ? BUDGET_TRANSLATIONS[submission.budget_range] || submission.budget_range
     : submission.budget_range;
