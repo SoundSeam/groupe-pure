@@ -358,17 +358,12 @@ const dictionaries = {
       lead: "Derrière chaque projet, une équipe engagée rassemble la vision, la technique et le chantier pour faire avancer chaque décision avec clarté.",
       careers: {
         eyebrow: "Carrières",
+        buttonLabel: "Joindre notre équipe",
+        stripTitle: "Envie de bâtir la suite avec nous?",
+        stripLead: "Présentez-vous à notre équipe en quelques minutes.",
         title: "Votre prochain projet pourrait commencer ici.",
         lead:
-          "Vous aimez le travail bien fait, les idées claires et les équipes qui avancent ensemble? Nous voulons connaître votre parcours — même si aucun poste précis n’est affiché.",
-        highlights: [
-          "Des projets complets et variés",
-          "Une collaboration sans silos",
-          "Des standards élevés, sur le terrain comme au bureau",
-        ],
-        formTitle: "Présentez-vous",
-        formNote:
-          "Quelques minutes suffisent. Joignez votre CV ou votre portfolio; notre équipe communiquera avec vous si une occasion correspond à votre profil.",
+          "Présentez votre parcours en quelques mots et joignez votre CV ou portfolio. Nous vous contacterons si votre profil correspond à une occasion.",
       },
       applicationForm: {
         name: "Nom complet",
@@ -809,17 +804,12 @@ const dictionaries = {
       lead: "Behind every project, a committed team brings vision, technical thinking and field execution together so each decision moves forward clearly.",
       careers: {
         eyebrow: "Careers",
+        buttonLabel: "Join our team",
+        stripTitle: "Ready to build what’s next with us?",
+        stripLead: "Introduce yourself to our team in just a few minutes.",
         title: "Your next project could start here.",
         lead:
-          "If you care about thoughtful work, clear ideas and teams that move forward together, we want to hear your story — even when no specific position is posted.",
-        highlights: [
-          "Complete, varied projects",
-          "Collaboration without silos",
-          "High standards, on site and in the office",
-        ],
-        formTitle: "Introduce yourself",
-        formNote:
-          "It only takes a few minutes. Attach your résumé or portfolio and our team will reach out if an opportunity matches your profile.",
+          "Tell us about your experience in a few words and attach your résumé or portfolio. We’ll reach out if your profile matches an opportunity.",
       },
       applicationForm: {
         name: "Full name",

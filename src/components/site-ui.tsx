@@ -63,14 +63,18 @@ export function PageHero({
 export function PrimaryButton({
   href,
   children,
+  compact = false,
 }: {
   href: string;
   children: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className="inline-flex rounded-xl bg-[#e4c58f] px-9 py-4 text-lg font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
+      className={`inline-flex rounded-xl bg-[#e4c58f] font-medium text-[#101211] transition hover:bg-[#e4c58f]/90 ${
+        compact ? "px-6 py-3 text-base" : "px-9 py-4 text-lg"
+      }`}
     >
       {children}
     </Link>

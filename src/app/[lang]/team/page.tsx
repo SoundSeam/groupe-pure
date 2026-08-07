@@ -4,7 +4,12 @@ import { notFound } from "next/navigation";
 
 import ContactForm from "@/components/contact-form";
 import { ImageWatermark } from "@/components/image-watermark";
-import { CtaBand, PageHero, SectionShell } from "@/components/site-ui";
+import {
+  CtaBand,
+  PageHero,
+  PrimaryButton,
+  SectionShell,
+} from "@/components/site-ui";
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, hasLocale } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -48,58 +53,22 @@ export default async function TeamPage({
         title={dict.teamPage.title}
         lead={dict.teamPage.lead}
       />
-      <SectionShell className="pt-4 sm:pt-8">
-        <section
-          aria-labelledby="careers-title"
-          className="overflow-hidden rounded-2xl border border-white/10 bg-[#171a18]"
-        >
-          <div className="grid lg:grid-cols-[0.78fr_1.22fr]">
-            <div className="flex flex-col justify-between border-b border-white/10 p-7 sm:p-10 lg:border-r lg:border-b-0 lg:p-12">
-              <div>
-                <p className="text-sm font-medium text-[#e4c58f]">
-                  {dict.teamPage.careers.eyebrow}
-                </p>
-                <h2
-                  id="careers-title"
-                  className="mt-4 text-3xl font-semibold text-white sm:text-5xl sm:leading-[1.08]"
-                >
-                  {dict.teamPage.careers.title}
-                </h2>
-                <p className="mt-6 max-w-xl text-base font-light leading-7 text-white/70 sm:text-lg sm:leading-8">
-                  {dict.teamPage.careers.lead}
-                </p>
-              </div>
-              <ul className="mt-10 grid gap-3 border-t border-white/10 pt-7 text-sm text-white/65 sm:grid-cols-3 lg:grid-cols-1">
-                {dict.teamPage.careers.highlights.map((highlight) => (
-                  <li key={highlight} className="flex items-center gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e4c58f]"
-                    />
-                    {highlight}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="bg-[#101211]/45 p-7 sm:p-10 lg:p-12">
-              <div className="mb-7">
-                <h3 className="text-xl font-semibold text-white sm:text-2xl">
-                  {dict.teamPage.careers.formTitle}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-white/55">
-                  {dict.teamPage.careers.formNote}
-                </p>
-              </div>
-              <ContactForm
-                labels={dict.teamPage.applicationForm}
-                locale={lang}
-                submissionType="application"
-              />
-            </div>
+      <section className="mt-10 bg-[#171a18] py-7 sm:mt-16 sm:py-8">
+        <div className="mx-auto grid w-full max-w-7xl gap-5 px-6 sm:px-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-white sm:text-2xl">
+              {dict.teamPage.careers.stripTitle}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm font-light leading-6 text-white/60 sm:text-base">
+              {dict.teamPage.careers.stripLead}
+            </p>
           </div>
-        </section>
-      </SectionShell>
-      <SectionShell className="pt-8 sm:pt-12">
+          <PrimaryButton compact href="#careers">
+            {dict.teamPage.careers.buttonLabel}
+          </PrimaryButton>
+        </div>
+      </section>
+      <SectionShell>
         <div className="grid gap-x-5 gap-y-[3.75rem] md:grid-cols-2 lg:grid-cols-3">
           {dict.teamPage.members.map((member, index) => (
             <article key={member.name}>
@@ -126,14 +95,47 @@ export default async function TeamPage({
             </article>
           ))}
         </div>
-        <div className="mt-40 pt-10 sm:mt-56 sm:pt-12 lg:grid lg:grid-cols-3 lg:gap-5">
+      </SectionShell>
+      <SectionShell className="pt-0" panel>
+        <section>
           <h2 className="text-3xl font-semibold text-white sm:text-5xl">
             {dict.teamPage.aboutTitle}
           </h2>
-          <p className="mt-5 text-base font-light leading-7 text-white/76 sm:text-lg sm:leading-8 lg:col-span-2 lg:mt-0">
+          <p className="mt-6 text-base font-light leading-7 text-white/76 sm:text-lg sm:leading-8">
             {dict.teamPage.aboutBody}
           </p>
-        </div>
+        </section>
+      </SectionShell>
+      <SectionShell className="pt-8 sm:pt-12">
+        <section aria-labelledby="careers-title">
+          <div
+            id="careers"
+            className="grid scroll-mt-24 gap-12 lg:grid-cols-[0.78fr_1.22fr] lg:gap-20"
+          >
+            <div>
+              <p className="text-sm font-medium text-[#e4c58f]">
+                {dict.teamPage.careers.eyebrow}
+              </p>
+              <h2
+                id="careers-title"
+                className="mt-4 text-3xl font-semibold text-white sm:text-5xl sm:leading-[1.08]"
+              >
+                {dict.teamPage.careers.title}
+              </h2>
+              <p className="mt-6 max-w-xl text-base font-light leading-7 text-white/70 sm:text-lg sm:leading-8">
+                {dict.teamPage.careers.lead}
+              </p>
+            </div>
+            <div>
+              <ContactForm
+                alignSubmitRight
+                labels={dict.teamPage.applicationForm}
+                locale={lang}
+                submissionType="application"
+              />
+            </div>
+          </div>
+        </section>
       </SectionShell>
       <CtaBand
         lang={lang as Locale}
