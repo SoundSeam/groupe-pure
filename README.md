@@ -120,7 +120,8 @@ upload token.
    npx supabase link --project-ref YOUR_PROJECT_REF
    ```
 
-3. Apply the contact table and private Storage bucket migration:
+3. Apply the contact tables and both Storage bucket migrations (including the
+   CMS media RLS policies):
 
    ```bash
    npx supabase db push
