@@ -51,25 +51,37 @@ CREATE POLICY "Admin editors can upload site media"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (
   bucket_id = 'site-media'
-  AND lower(coalesce(auth.jwt() ->> 'email', '')) = 'sounds@soundseam.com'
+  AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
+    'sounds@soundseam.com',
+    'info@groupepure.ca'
+  )
 );
 
 CREATE POLICY "Admin editors can update site media"
 ON storage.objects FOR UPDATE TO authenticated
 USING (
   bucket_id = 'site-media'
-  AND lower(coalesce(auth.jwt() ->> 'email', '')) = 'sounds@soundseam.com'
+  AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
+    'sounds@soundseam.com',
+    'info@groupepure.ca'
+  )
 )
 WITH CHECK (
   bucket_id = 'site-media'
-  AND lower(coalesce(auth.jwt() ->> 'email', '')) = 'sounds@soundseam.com'
+  AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
+    'sounds@soundseam.com',
+    'info@groupepure.ca'
+  )
 );
 
 CREATE POLICY "Admin editors can delete site media"
 ON storage.objects FOR DELETE TO authenticated
 USING (
   bucket_id = 'site-media'
-  AND lower(coalesce(auth.jwt() ->> 'email', '')) = 'sounds@soundseam.com'
+  AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
+    'sounds@soundseam.com',
+    'info@groupepure.ca'
+  )
 );
 
 -- Public object URLs remain readable because the bucket is public. Deliberately
