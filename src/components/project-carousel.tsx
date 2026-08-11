@@ -29,7 +29,12 @@ export function ProjectCarousel({
   imageLabel: string;
 }) {
   const [viewportRef, emblaApi] = useEmblaCarousel({
+    active: images.length > 1,
     align: "start",
+    breakpoints: {
+      "(min-width: 640px)": { active: images.length > 2 },
+      "(min-width: 1280px)": { active: images.length > 3 },
+    },
     loop: true,
   });
   const [canScrollPrevious, setCanScrollPrevious] = useState(false);
@@ -38,9 +43,16 @@ export function ProjectCarousel({
   const updateNavigation = useCallback(() => {
     if (!emblaApi) return;
 
-    setCanScrollPrevious(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
+    const visibleSlides = window.matchMedia("(min-width: 1280px)").matches
+      ? 3
+      : window.matchMedia("(min-width: 640px)").matches
+        ? 2
+        : 1;
+    const hasOverflow = images.length > visibleSlides;
+
+    setCanScrollPrevious(hasOverflow && emblaApi.canScrollPrev());
+    setCanScrollNext(hasOverflow && emblaApi.canScrollNext());
+  }, [emblaApi, images.length]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -93,41 +105,43 @@ export function ProjectCarousel({
         aria-roledescription="carousel"
         aria-label={title}
       >
-        <div className="flex gap-5 [touch-action:pan-y_pinch-zoom]">
+        <div className="-ml-5 flex w-full [touch-action:pan-y_pinch-zoom]">
           {images.map((image, index) => (
             <article
               key={image.id ?? `${image.image}-${index}`}
-              className="group relative aspect-[4/3] min-w-0 flex-[0_0_82%] overflow-hidden rounded-xl bg-[#171a18] sm:flex-[0_0_calc((100%_-_1.25rem)/2)] xl:flex-[0_0_calc((100%_-_2.5rem)/3)]"
+              className="min-w-0 flex-[0_0_calc(82%_+_1.25rem)] pl-5 sm:flex-[0_0_calc((100%_+_1.25rem)/2)] xl:flex-[0_0_calc((100%_+_1.25rem)/3)]"
               role="group"
               aria-roledescription="slide"
               aria-label={`${imageLabel} ${index + 1} / ${images.length}`}
             >
-              <div className="absolute inset-0">
-                {image.mediaType === "video" ? (
-                  <video
-                    src={image.image}
-                    aria-label={image.imageAlt}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                  />
-                ) : image.image ? (
-                  <Image
-                    src={image.image}
-                    alt={image.imageAlt}
-                    fill
-                    sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 82vw"
-                    className="object-cover transition duration-500 group-hover:scale-[1.03]"
-                  />
-                ) : null}
-                <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/45" />
-                {image.image ? <ImageWatermark /> : null}
+              <div className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-[#171a18]">
+                <div className="absolute inset-0">
+                  {image.mediaType === "video" ? (
+                    <video
+                      src={image.image}
+                      aria-label={image.imageAlt}
+                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                    />
+                  ) : image.image ? (
+                    <Image
+                      src={image.image}
+                      alt={image.imageAlt}
+                      fill
+                      sizes="(min-width: 1280px) 30vw, (min-width: 640px) 45vw, 82vw"
+                      className="object-cover transition duration-500 group-hover:scale-[1.03]"
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/45" />
+                  {image.image ? <ImageWatermark /> : null}
+                </div>
+                <h3 className="absolute top-5 left-5 text-sm font-semibold uppercase text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-base">
+                  {image.title}
+                </h3>
               </div>
-              <h3 className="absolute top-5 left-5 text-sm font-semibold uppercase text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.6)] sm:text-base">
-                {image.title}
-              </h3>
             </article>
           ))}
         </div>

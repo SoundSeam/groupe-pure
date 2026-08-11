@@ -38,11 +38,17 @@ async function uploadProjectMedia(
   const registration = await registrationPromise;
   expect(registration.ok()).toBeTruthy();
   const registeredPayload = (await registration.json()) as {
-    asset: { publicUrl: string };
+    asset: { publicUrl: string; fileName: string };
   };
 
   await expect(page.getByText("Média enregistré")).toBeVisible();
-  return registeredPayload.asset.publicUrl;
+  await expect(
+    page.getByRole("dialog", { name: "Médiathèque" }),
+  ).not.toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "Modifier le projet" }),
+  ).toBeVisible();
+  return registeredPayload.asset;
 }
 
 test.describe("project media editor", () => {
@@ -53,7 +59,7 @@ test.describe("project media editor", () => {
 
   test("uploads, saves, reloads, and previews a project image", async ({ page }) => {
     await signInIfNeeded(page);
-    const uploadedUrl = await uploadProjectMedia(page, {
+    const uploadedAsset = await uploadProjectMedia(page, {
       name: `cms-e2e-${Date.now()}.png`,
       mimeType: "image/png",
       buffer: Buffer.from(
@@ -66,18 +72,23 @@ test.describe("project media editor", () => {
     await expect(
       firstProject.getByRole("button", { name: "Modifier" }),
     ).toBeVisible();
-    await expect(firstProject.locator("img")).toHaveAttribute("src", uploadedUrl);
+    await expect(firstProject.locator("img")).toHaveAttribute(
+      "src",
+      uploadedAsset.publicUrl,
+    );
 
     if (process.env.CMS_E2E_ALLOW_PUBLISH === "true") {
       await page.getByRole("button", { name: "Publier" }).click();
       await page.goto("/fr/projects");
-      await expect(page.locator(`img[src="${uploadedUrl}"]`).first()).toBeVisible();
+      await expect(
+        page.locator(`img[src="${uploadedAsset.publicUrl}"]`).first(),
+      ).toBeVisible();
     }
   });
 
   test("uploads, saves, reloads, and previews a project video", async ({ page }) => {
     await signInIfNeeded(page);
-    const uploadedUrl = await uploadProjectMedia(page, {
+    const uploadedAsset = await uploadProjectMedia(page, {
       name: `cms-e2e-${Date.now()}.mp4`,
       mimeType: "video/mp4",
       buffer: projectVideo,
@@ -90,15 +101,150 @@ test.describe("project media editor", () => {
     ).toBeVisible();
     await expect(firstProject.locator("video")).toHaveAttribute(
       "src",
-      uploadedUrl,
+      uploadedAsset.publicUrl,
     );
 
     if (process.env.CMS_E2E_ALLOW_PUBLISH === "true") {
       await page.getByRole("button", { name: "Publier" }).click();
       await page.goto("/fr/projects");
       await expect(
-        page.locator(`video[src="${uploadedUrl}"]`).first(),
+        page.locator(`video[src="${uploadedAsset.publicUrl}"]`).first(),
       ).toBeVisible();
     }
+  });
+
+  test("keeps a new project local until creation is confirmed", async ({ page }) => {
+    await signInIfNeeded(page);
+    const projects = page.locator("aside article");
+    const initialCount = await projects.count();
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-cms-project-list]")
+          .evaluate((element) => getComputedStyle(element).overflowX),
+      )
+      .toBe("hidden");
+
+    await page
+      .getByRole("button", { name: "Ajouter un projet — Architecture" })
+      .click();
+
+    const dialog = page.getByRole("dialog", { name: "Ajouter un projet" });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("Titre du projet")).toHaveValue("");
+    await expect(
+      dialog.getByRole("button", { name: "Ajouter un média" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Créer le projet" }),
+    ).toBeDisabled();
+    await expect(
+      dialog.getByRole("button", { name: "Supprimer" }),
+    ).toHaveCount(0);
+
+    await dialog.getByLabel("Titre du projet").fill("Projet abandonné");
+    await dialog.getByRole("button", { name: "Annuler" }).click();
+    await expect(dialog).not.toBeVisible();
+    await expect(projects).toHaveCount(initialCount);
+
+    await page.reload();
+    await expect(page.locator("aside article")).toHaveCount(initialCount);
+  });
+
+  test("creates a project only after its required fields are ready", async ({ page }) => {
+    await signInIfNeeded(page);
+    const initialCount = await page.locator("aside article").count();
+    const title = `Projet E2E ${Date.now()}`;
+
+    await page
+      .getByRole("button", { name: "Ajouter un projet — Architecture" })
+      .click();
+    const createDialog = page.getByRole("dialog", {
+      name: "Ajouter un projet",
+    });
+    await createDialog.getByLabel("Titre du projet").fill(title);
+    await createDialog
+      .getByRole("button", { name: "Ajouter un média" })
+      .click();
+
+    const chooserPromise = page.waitForEvent("filechooser");
+    const registrationPromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/cms/assets") &&
+        response.request().method() === "POST",
+    );
+    await page.getByRole("button", { name: "Importer" }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
+      name: `cms-e2e-create-${Date.now()}.png`,
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
+    expect((await registrationPromise).ok()).toBeTruthy();
+
+    await expect(
+      page.getByRole("dialog", { name: "Médiathèque" }),
+    ).not.toBeVisible();
+    await expect(createDialog).toBeVisible();
+    await expect(
+      createDialog.getByRole("button", { name: "Remplacer le média" }),
+    ).toBeVisible();
+    await expect(
+      createDialog.getByRole("button", { name: "Créer le projet" }),
+    ).toBeEnabled();
+
+    const savePromise = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/cms/content") &&
+        response.request().method() === "POST",
+    );
+    await createDialog
+      .getByRole("button", { name: "Créer le projet" })
+      .click();
+    expect((await savePromise).ok()).toBeTruthy();
+
+    await expect(page.locator("aside article")).toHaveCount(initialCount + 1);
+    await expect(
+      page.locator("aside article").filter({ hasText: title }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.locator("aside article").filter({ hasText: title }),
+    ).toBeVisible();
+  });
+
+  test("closes the chooser after selecting an existing asset", async ({ page }) => {
+    await signInIfNeeded(page);
+    const fileName = `cms-e2e-library-${Date.now()}.png`;
+    const uploadedAsset = await uploadProjectMedia(page, {
+      name: fileName,
+      mimeType: "image/png",
+      buffer: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    });
+
+    const editDialog = page.getByRole("dialog", {
+      name: "Modifier le projet",
+    });
+    await editDialog.getByRole("button", { name: "Terminé" }).click();
+    await page.getByRole("button", { name: "Modifier" }).first().click();
+    await page.getByRole("button", { name: "Remplacer le média" }).click();
+
+    const mediaDialog = page.getByRole("dialog", { name: "Médiathèque" });
+    await mediaDialog
+      .getByRole("button", { name: uploadedAsset.fileName })
+      .click();
+
+    await expect(mediaDialog).not.toBeVisible();
+    await expect(editDialog).toBeVisible();
+    await expect(editDialog.locator("img")).toHaveAttribute(
+      "src",
+      uploadedAsset.publicUrl,
+    );
   });
 });

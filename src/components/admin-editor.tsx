@@ -72,7 +72,8 @@ type MediaSelection = {
 
 type MediaLibraryTarget =
   | { kind: "page"; fieldKey: string }
-  | { kind: "project"; projectId: string };
+  | { kind: "project"; projectId: string }
+  | { kind: "project-draft"; projectId: string };
 
 type PendingMediaUpload = {
   file: File;
@@ -571,6 +572,9 @@ export default function AdminEditor({
   const [selectedProjectId, setSelectedProjectId] = useState(
     () => normalizeProjects(initialProjects)[0]?.id ?? "",
   );
+  const [creatingProject, setCreatingProject] = useState<CmsProject | null>(
+    null,
+  );
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [draggedProjectId, setDraggedProjectId] = useState("");
   const [mediaLibraryTarget, setMediaLibraryTarget] =
@@ -585,6 +589,15 @@ export default function AdminEditor({
   const [uploadCancelable, setUploadCancelable] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
+  const closeProjectDialog = useCallback(() => {
+    setProjectDialogOpen(false);
+    setCreatingProject(null);
+    setUploadStatus(null);
+    setPendingUpload(null);
+    setPendingMediaSave(false);
+    setMessage("");
+  }, [setMessage]);
+
   useEffect(() => {
     if (!projectDialogOpen && !mediaLibraryTarget) return;
 
@@ -598,11 +611,11 @@ export default function AdminEditor({
         return;
       }
       if (mediaLibraryTarget) setMediaLibraryTarget(null);
-      else setProjectDialogOpen(false);
+      else closeProjectDialog();
     };
     window.addEventListener("keydown", closeDialog);
     return () => window.removeEventListener("keydown", closeDialog);
-  }, [activity, mediaLibraryTarget, projectDialogOpen]);
+  }, [activity, closeProjectDialog, mediaLibraryTarget, projectDialogOpen]);
 
   const selectMedia = useCallback((selection: MediaSelection | null) => {
     mediaSelectionRef.current = selection;
@@ -1168,7 +1181,15 @@ export default function AdminEditor({
     if (!target) return false;
     const type = asset.mimeType.startsWith("video/") ? "video" : "image";
 
-    if (target.kind === "project") {
+    if (target.kind === "project-draft") {
+      if (creatingProject?.id !== target.projectId) return false;
+      setCreatingProject({
+        ...creatingProject,
+        image: asset.publicUrl,
+        mediaType: type,
+        imageAlt: creatingProject.imageAlt || creatingProject.title,
+      });
+    } else if (target.kind === "project") {
       writeProjects(
         projects.map((project) =>
           project.id === target.projectId
@@ -1214,7 +1235,20 @@ export default function AdminEditor({
     return true;
   }
 
-  async function persistAppliedMedia() {
+  async function persistAppliedMedia(
+    target: MediaLibraryTarget | null = mediaLibraryTarget,
+  ) {
+    if (!target) return false;
+
+    if (target.kind === "project-draft") {
+      setUploadStatus({ phase: "complete" });
+      setActivity("idle");
+      setMessage(
+        locale === "fr" ? "Média sélectionné." : "Media selected.",
+      );
+      return true;
+    }
+
     setPendingMediaSave(false);
     setUploadStatus({ phase: "saving" });
     const savedRevision = await saveDraft();
@@ -1224,8 +1258,12 @@ export default function AdminEditor({
     }
 
     setUploadStatus({ phase: "complete" });
-    setMessage("");
+    setMessage(locale === "fr" ? "Média enregistré." : "Media saved.");
     return true;
+  }
+
+  function closeMediaLibrary(target: MediaLibraryTarget) {
+    setMediaLibraryTarget((current) => (current === target ? null : current));
   }
 
   async function chooseLibraryAsset(asset: CmsMediaAsset) {
@@ -1239,7 +1277,9 @@ export default function AdminEditor({
       setMessage("The selected media could not be applied.");
       return;
     }
-    await persistAppliedMedia();
+    if (await persistAppliedMedia(target)) {
+      closeMediaLibrary(target);
+    }
   }
 
   async function runPendingUpload(operation: PendingMediaUpload) {
@@ -1271,7 +1311,9 @@ export default function AdminEditor({
       if (!applyLibraryAsset(asset, operation.target)) {
         throw new Error("The uploaded media could not be applied.");
       }
-      await persistAppliedMedia();
+      if (await persistAppliedMedia(operation.target)) {
+        closeMediaLibrary(operation.target);
+      }
     } catch (error) {
       uploadAbortRef.current = null;
       setUploadCancelable(false);
@@ -1314,7 +1356,11 @@ export default function AdminEditor({
     if (pendingUpload) {
       void runPendingUpload(pendingUpload);
     } else if (pendingMediaSave) {
-      void persistAppliedMedia();
+      const target = mediaLibraryTarget;
+      if (!target) return;
+      void persistAppliedMedia(target).then((saved) => {
+        if (saved) closeMediaLibrary(target);
+      });
     }
   }
 
@@ -1323,9 +1369,9 @@ export default function AdminEditor({
   }
 
   function addProject(category: ProjectCategory) {
-    const project: CmsProject = {
+    setCreatingProject({
       id: crypto.randomUUID(),
-      title: locale === "fr" ? "Nouveau projet" : "New project",
+      title: "",
       image: "",
       imageAlt: "",
       mediaType: "image",
@@ -1333,11 +1379,21 @@ export default function AdminEditor({
       type: "",
       location: "",
       summary: "",
-    };
-    const next = [...projects, project];
-    writeProjects(next);
-    setSelectedProjectId(project.id);
+    });
     setProjectDialogOpen(true);
+  }
+
+  function commitNewProject() {
+    if (!creatingProject?.title.trim() || !creatingProject.image) return;
+
+    const project = {
+      ...creatingProject,
+      title: creatingProject.title.trim(),
+      imageAlt: creatingProject.title.trim(),
+    };
+    writeProjects([...projects, project]);
+    setSelectedProjectId(project.id);
+    closeProjectDialog();
   }
 
   function reorderProject(
@@ -1364,13 +1420,18 @@ export default function AdminEditor({
 
     const next = projects.filter((project) => project.id !== selectedProjectId);
     writeProjects(next);
-    setProjectDialogOpen(false);
+    closeProjectDialog();
     setSelectedProjectId(
       next[Math.min(index, Math.max(0, next.length - 1))]?.id ?? "",
     );
   }
 
   function updateSelectedProjectTitle(title: string) {
+    if (creatingProject) {
+      setCreatingProject({ ...creatingProject, title });
+      return;
+    }
+
     writeProjects(
       projects.map((project) =>
         project.id === selectedProjectId
@@ -1382,6 +1443,11 @@ export default function AdminEditor({
   }
 
   function updateSelectedProjectCategory(category: ProjectCategory) {
+    if (creatingProject) {
+      setCreatingProject({ ...creatingProject, category });
+      return;
+    }
+
     writeProjects(
       projects.map((project) =>
         project.id === selectedProjectId ? { ...project, category } : project,
@@ -1410,7 +1476,20 @@ export default function AdminEditor({
     "",
   )}`;
   const selectedProject =
-    projects.find((project) => project.id === selectedProjectId) ?? null;
+    creatingProject ??
+    projects.find((project) => project.id === selectedProjectId) ??
+    null;
+  const isCreatingProject = creatingProject !== null;
+  const canCreateProject = Boolean(
+    creatingProject?.title.trim() && creatingProject.image,
+  );
+  const projectDialogTitle = isCreatingProject
+    ? locale === "fr"
+      ? "Ajouter un projet"
+      : "Add project"
+    : locale === "fr"
+      ? "Modifier le projet"
+      : "Edit project";
   const selectedMediaValue = selectedMedia
     ? ({
         type: selectedMedia.type,
@@ -1735,7 +1814,10 @@ export default function AdminEditor({
           </aside>
         ) : initialPath.endsWith("/projects") ? (
           <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-[#111412] text-white">
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div
+              data-cms-project-list
+              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3"
+            >
               <div className="space-y-6">
                 {PROJECT_CATEGORIES.map((category) => {
                   const categoryProjects = projects.filter(
@@ -1766,6 +1848,7 @@ export default function AdminEditor({
                               ? "Ajouter un projet"
                               : "Add project"
                           }
+                          data-tooltip-align="end"
                           onClick={() => addProject(category)}
                           className="admin-tooltip grid h-7 w-7 place-items-center rounded-sm border border-white/15 text-white/70 transition hover:bg-white/8 hover:text-white"
                         >
@@ -1862,17 +1945,15 @@ export default function AdminEditor({
           </aside>
         ) : null}
 
-        {projectDialogOpen && selectedProject ? (
+        {projectDialogOpen && selectedProject && !mediaLibraryTarget ? (
           <div
             role="dialog"
             aria-modal="true"
-            aria-label={
-              locale === "fr" ? "Modifier le projet" : "Edit project"
-            }
+            aria-label={projectDialogTitle}
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 text-white"
             onMouseDown={(event) => {
               if (event.currentTarget === event.target) {
-                setProjectDialogOpen(false);
+                closeProjectDialog();
               }
             }}
           >
@@ -1881,11 +1962,15 @@ export default function AdminEditor({
                 type="button"
                 aria-label={locale === "fr" ? "Fermer" : "Close"}
                 data-tooltip={locale === "fr" ? "Fermer" : "Close"}
-                onClick={() => setProjectDialogOpen(false)}
+                onClick={closeProjectDialog}
                 className="admin-tooltip absolute top-2 right-2 z-10 grid h-8 w-8 place-items-center rounded-md border border-white/15 bg-[#111412]/90 text-white/70 shadow-lg transition hover:bg-[#202421] hover:text-white"
               >
                 <X className="h-4 w-4" />
               </button>
+
+              <h2 className="mb-3 pr-10 text-base font-semibold text-white/90">
+                {projectDialogTitle}
+              </h2>
 
               <div className="mb-4 aspect-video overflow-hidden rounded-md bg-white/5">
                 {selectedProject.image ? (
@@ -1906,7 +1991,13 @@ export default function AdminEditor({
                       className="h-full w-full object-cover"
                     />
                   )
-                ) : null}
+                ) : (
+                  <div className="grid h-full place-items-center px-6 text-center text-sm text-white/38">
+                    {locale === "fr"
+                      ? "Aucun média sélectionné"
+                      : "No media selected"}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -1915,18 +2006,22 @@ export default function AdminEditor({
                     {locale === "fr" ? "Titre du projet" : "Project title"}
                   </span>
                   <input
+                    autoFocus
                     value={selectedProject.title}
                     placeholder={
                       locale === "fr" ? "Titre du projet" : "Project title"
                     }
                     onFocus={() => {
-                      projectTitleStartRef.current =
-                        contentRef.current[PROJECTS_CONTENT_KEY];
+                      if (!isCreatingProject) {
+                        projectTitleStartRef.current =
+                          contentRef.current[PROJECTS_CONTENT_KEY];
+                      }
                     }}
                     onChange={(event) =>
                       updateSelectedProjectTitle(event.target.value)
                     }
                     onBlur={() => {
+                      if (isCreatingProject) return;
                       pushHistory({
                         key: PROJECTS_CONTENT_KEY,
                         before: projectTitleStartRef.current,
@@ -1966,31 +2061,60 @@ export default function AdminEditor({
                   disabled={busy}
                   onClick={() =>
                     void openMediaLibrary({
-                      kind: "project",
+                      kind: isCreatingProject ? "project-draft" : "project",
                       projectId: selectedProject.id,
                     })
                   }
                   className="w-full rounded-md border border-white/15 px-3 py-2 text-sm font-medium transition hover:bg-white/8 disabled:opacity-30"
                 >
-                  {locale === "fr" ? "Remplacer le média" : "Replace media"}
+                  {selectedProject.image
+                    ? locale === "fr"
+                      ? "Remplacer le média"
+                      : "Replace media"
+                    : locale === "fr"
+                      ? "Ajouter un média"
+                      : "Add media"}
                 </button>
 
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={deleteSelectedProject}
-                    className="rounded-md border border-red-300/20 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-300/10 disabled:opacity-30"
-                  >
-                    {locale === "fr" ? "Supprimer" : "Delete project"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setProjectDialogOpen(false)}
-                    className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-[#101211] transition hover:bg-white/90"
-                  >
-                    {locale === "fr" ? "Terminé" : "Done"}
-                  </button>
+                  {isCreatingProject ? (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={closeProjectDialog}
+                        className="rounded-md border border-white/15 px-3 py-2 text-sm font-medium text-white/75 transition hover:bg-white/8 disabled:opacity-30"
+                      >
+                        {locale === "fr" ? "Annuler" : "Cancel"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy || !canCreateProject}
+                        onClick={commitNewProject}
+                        className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-[#101211] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        {locale === "fr" ? "Créer le projet" : "Create project"}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={deleteSelectedProject}
+                        className="rounded-md border border-red-300/20 px-3 py-2 text-sm font-medium text-red-200 transition hover:bg-red-300/10 disabled:opacity-30"
+                      >
+                        {locale === "fr" ? "Supprimer" : "Delete project"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeProjectDialog}
+                        className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-[#101211] transition hover:bg-white/90"
+                      >
+                        {locale === "fr" ? "Terminé" : "Done"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

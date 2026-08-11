@@ -65,3 +65,9 @@ body {
 .admin-tooltip:focus-visible::after {
   opacity: 1;
 }
+
+.admin-tooltip[data-tooltip-align="end"]::after {
+  right: 0;
+  left: auto;
+  transform: none;
+}
