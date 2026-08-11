@@ -253,7 +253,7 @@ export function Footer({
             />
             <div className="flex flex-col items-start gap-[0.4875rem] text-left text-[0.95rem] font-medium leading-[1.425rem] text-white sm:gap-[0.6125rem] sm:text-[1.06875rem]">
               <p>Architecture</p>
-              <p>Consturuction</p>
+              <p>Construction</p>
               <p>Excavation</p>
             </div>
           </div>
