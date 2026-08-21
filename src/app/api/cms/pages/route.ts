@@ -55,7 +55,7 @@ export async function PATCH(request: Request) {
 
   if (!page.hideable && !body.visible) {
     return NextResponse.json(
-      { error: "The homepage cannot be hidden." },
+      { error: "This page cannot be hidden." },
       { status: 400 },
     );
   }

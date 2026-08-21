@@ -6,6 +6,7 @@ import {
   isPageVisible,
   localizedPagePath,
   parseSiteVisibility,
+  sitePages,
 } from "./pages";
 
 describe("CMS page visibility", () => {
@@ -28,6 +29,12 @@ describe("CMS page visibility", () => {
     expect(isEditablePagePath("/en/team")).toBe(true);
     expect(isEditablePagePath("/en/terms")).toBe(false);
     expect(localizedPagePath("fr", "/contact")).toBe("/fr/contact");
+    expect(sitePages.find((page) => page.href === "/privacy")?.hideable).toBe(
+      false,
+    );
+    expect(sitePages.find((page) => page.href === "/terms")?.hideable).toBe(
+      false,
+    );
   });
 
   it("drops unknown paths from a serialized visibility header", () => {

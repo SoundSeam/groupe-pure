@@ -39,14 +39,14 @@ export const sitePages = [
     href: "/privacy",
     labels: { en: "Privacy", fr: "Confidentialité" },
     editable: false,
-    hideable: true,
+    hideable: false,
   },
   {
     slug: "terms",
     href: "/terms",
     labels: { en: "Terms", fr: "Conditions d’utilisation" },
     editable: false,
-    hideable: true,
+    hideable: false,
   },
 ] as const;
 

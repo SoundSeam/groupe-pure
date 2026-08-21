@@ -39,6 +39,7 @@ export async function loadSiteVisibility(): Promise<SiteVisibility> {
       const locale = record.path.split("/")[1];
       const page = pageForPath(record.path);
       if ((locale !== "en" && locale !== "fr") || !page) return;
+      if (!page.hideable) return;
 
       visibility[locale] = record.isVisible
         ? Array.from(new Set([...visibility[locale], page.href]))
@@ -48,9 +49,13 @@ export async function loadSiteVisibility(): Promise<SiteVisibility> {
     console.error("Page visibility lookup failed; using the legacy default.", error);
   }
 
-  // The localized homepages are the safe redirect destination and cannot be hidden.
+  // Home and legal pages are permanent and never controlled by an override.
   siteLocales.forEach((locale) => {
-    if (!visibility[locale].includes("/")) visibility[locale].unshift("/");
+    sitePages.forEach((page) => {
+      if (!page.hideable && !visibility[locale].includes(page.href)) {
+        visibility[locale].push(page.href);
+      }
+    });
   });
 
   return visibility;
