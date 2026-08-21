@@ -53,8 +53,9 @@ const yvonPortrait = "/team/yvon-racine-professional-v3.png";
 const danielPortrait = "/team/daniel-nduwimana-headshot.png";
 
 const architectureVideo = siteMedia("services/architecture.mp4");
-const constructionVideo =
-  "https://soundseam-origin.s3.us-east-2.amazonaws.com/misc/Construction_worker_framing_atti%E2%80%A6_202608041208.mp4";
+const constructionVideo = siteMedia(
+  "services/construction-worker-framing-202608041208.mp4",
+);
 const excavationVideo = siteMedia("services/excavation.mp4");
 
 const frServiceSubcategories = {
