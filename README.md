@@ -112,7 +112,7 @@ upload token.
 
 1. In Resend, add and verify `groupepure.ca`. The default sender is
    `Groupe Pure <website@groupepure.ca>` and the recipient is
-   `info@groupepure.ca`.
+   `groupepure@icloud.com`.
 2. Authenticate and link the Supabase CLI:
 
    ```bash

@@ -79,7 +79,7 @@ WITH CHECK (
   bucket_id = 'site-media'
   AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
     'sounds@soundseam.com',
-    'info@groupepure.ca'
+    'groupepure@icloud.com'
   )
 );
 
@@ -89,14 +89,14 @@ USING (
   bucket_id = 'site-media'
   AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
     'sounds@soundseam.com',
-    'info@groupepure.ca'
+    'groupepure@icloud.com'
   )
 )
 WITH CHECK (
   bucket_id = 'site-media'
   AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
     'sounds@soundseam.com',
-    'info@groupepure.ca'
+    'groupepure@icloud.com'
   )
 );
 
@@ -106,7 +106,7 @@ USING (
   bucket_id = 'site-media'
   AND lower(coalesce(auth.jwt() ->> 'email', '')) IN (
     'sounds@soundseam.com',
-    'info@groupepure.ca'
+    'groupepure@icloud.com'
   )
 );
 

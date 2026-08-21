@@ -3,7 +3,7 @@ import "server-only";
 export const contact = {
   phoneLabel: "(514) 885-5877",
   phoneHref: "tel:+15148855877",
-  email: "info@groupepure.ca",
+  email: "groupepure@icloud.com",
   address: "2100 Bd Marie-Victorin, Longueuil, QC J4G 1A8",
   rbq: "RBQ 5773-2182-01",
 };

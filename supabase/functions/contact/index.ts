@@ -1156,7 +1156,7 @@ async function sendSubmission(
     );
     const from = Deno.env.get("CONTACT_FROM_EMAIL")?.trim() ||
       "Groupe Pure <website@groupepure.ca>";
-    const to = Deno.env.get("CONTACT_TO_EMAIL")?.trim() || "info@groupepure.ca";
+    const to = Deno.env.get("CONTACT_TO_EMAIL")?.trim() || "groupepure@icloud.com";
     const payload: Record<string, unknown> = {
       from,
       to: [to],
