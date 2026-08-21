@@ -301,11 +301,11 @@ export function Footer({
           ) : null}
         </div>
 
-        <div className="inline-flex w-fit flex-col items-start self-end lg:items-end lg:justify-self-end">
+        <div className="flex w-full max-w-xs flex-col items-start justify-self-end self-end text-left lg:translate-x-[max(0px,calc(50vw_-_40rem))]">
           <h2 className="text-2xl font-semibold text-white">
             {dict.common.contact}
           </h2>
-          <div className="mt-8 inline-flex w-fit flex-col items-start gap-3 text-base text-white/78 lg:items-end lg:text-right">
+          <div className="mt-8 flex w-full flex-col items-start gap-3 text-base text-white/78">
             <a href={contact.phoneHref} className="inline-block w-fit">
               {contact.phoneLabel}
             </a>
