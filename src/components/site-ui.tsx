@@ -236,7 +236,11 @@ export function Footer({
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-[#101211] py-20" data-cms-ignore>
+    <footer
+      className="bg-[#101211] py-20"
+      data-cms-editable-region
+      data-cms-scope="shared:footer"
+    >
       <div className="mx-auto grid w-full max-w-7xl gap-16 px-6 sm:px-10 lg:grid-cols-2 lg:items-end">
         <div className="inline-flex w-fit flex-col items-start self-end lg:justify-self-start">
           <div className="flex items-center gap-4 sm:gap-6">
@@ -245,6 +249,7 @@ export function Footer({
               width={988}
               height={988}
               alt={dict.common.logoAlt}
+              data-cms-media-key="shared:footer:media:logo"
               className="h-[4.2rem] w-[4.2rem] shrink-0 origin-center scale-[1.05] object-contain sm:h-[4.9rem] sm:w-[4.9rem]"
             />
             <div

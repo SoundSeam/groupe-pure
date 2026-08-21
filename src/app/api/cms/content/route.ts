@@ -10,11 +10,9 @@ import { getPrisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-const sharedRoutes = new Set(["services", "projects", "team"]);
-
 function normalizePagePath(value: unknown) {
   const path = typeof value === "string" ? value : "";
-  return /^\/(en|fr)(\/(services|projects|team|contact))?$/.test(
+  return /^\/(en|fr)(\/(services|projects|team|contact|privacy|terms))?$/.test(
     path,
   )
     ? path
@@ -22,8 +20,11 @@ function normalizePagePath(value: unknown) {
 }
 
 function sharedPathFor(path: string) {
-  const [, locale, route = ""] = path.split("/");
-  return sharedRoutes.has(route) ? `/_shared/${locale}/cta` : null;
+  const [, locale] = path.split("/");
+
+  // Keep the existing storage path for compatibility. It now contains every
+  // locale-wide `shared:*` scope, including the CTA and footer.
+  return `/_shared/${locale}/cta`;
 }
 
 function splitContent(content: CmsContent) {

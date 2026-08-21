@@ -10,12 +10,24 @@ const ignoredTags = new Set([
 ]);
 
 function isIgnored(element: Element | null) {
+  const editableRegion = element?.closest("[data-cms-editable-region]");
+
   return (
     !element ||
     ignoredTags.has(element.tagName) ||
-    Boolean(element.closest("form, header, footer")) ||
+    Boolean(element.closest("form, header")) ||
+    (Boolean(element.closest("footer")) && !editableRegion) ||
     Boolean(element.closest("[data-cms-ignore]"))
   );
+}
+
+function editableRoots(document: Document) {
+  const main = document.querySelector("main");
+  const roots = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-cms-editable-region]"),
+  ).filter((region) => !main?.contains(region));
+
+  return main ? [main, ...roots] : roots.length ? roots : [document.body];
 }
 
 function pathWithin(element: Element, boundary: Element) {
@@ -81,11 +93,10 @@ export function placeholderKey(
 }
 
 export function collectTextNodes(document: Document) {
-  const root = document.querySelector("main") ?? document.body;
-  const walker = document.createTreeWalker(
-    root,
-    NodeFilter.SHOW_TEXT,
-    {
+  const nodes: Text[] = [];
+
+  editableRoots(document).forEach((root) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         const text = node as Text;
         const parent = text.parentElement;
@@ -100,26 +111,24 @@ export function collectTextNodes(document: Document) {
 
         return NodeFilter.FILTER_ACCEPT;
       },
-    },
-  );
-  const nodes: Text[] = [];
-  let current = walker.nextNode();
+    });
+    let current = walker.nextNode();
 
-  while (current) {
-    nodes.push(current as Text);
-    current = walker.nextNode();
-  }
+    while (current) {
+      nodes.push(current as Text);
+      current = walker.nextNode();
+    }
+  });
 
   return nodes;
 }
 
 export function collectMedia(document: Document) {
-  const root = document.querySelector("main") ?? document.body;
-  return Array.from(
-    root.querySelectorAll<HTMLImageElement | HTMLVideoElement>(
-      "img, video",
-    ),
-  ).filter((element) => !isIgnored(element));
+  return editableRoots(document).flatMap((root) =>
+    Array.from(
+      root.querySelectorAll<HTMLImageElement | HTMLVideoElement>("img, video"),
+    ).filter((element) => !isIgnored(element)),
+  );
 }
 
 export function getMediaValue(
