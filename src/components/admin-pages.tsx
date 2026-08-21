@@ -126,7 +126,9 @@ export default function AdminPages({
             <span className="text-center">Français</span>
             <span className="text-center">Anglais</span>
           </div>
-          {sitePages.filter((page) => page.hideable).map((page) => (
+          {sitePages
+            .filter((page) => page.href === "/" || page.hideable)
+            .map((page) => (
             <div
               key={page.href}
               className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem] items-center border-b border-white/10 px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_8rem_8rem]"
