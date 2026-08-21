@@ -2,9 +2,25 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import {
+  SITE_VISIBILITY_HEADER,
+  loadSiteVisibility,
+} from "@/lib/cms/page-visibility.server";
+import {
+  isPageVisible,
+  pageForPath,
+  serializeSiteVisibility,
+  siteLocales,
+  sitePages,
+  type SiteVisibility,
+} from "@/lib/cms/pages";
+
 const locales = ["en", "fr"] as const;
 const defaultLocale = "fr";
-const fullSiteEnabled = process.env.FULL_SITE_ENABLED === "true";
+
+const adminPreviewVisibility = Object.fromEntries(
+  siteLocales.map((locale) => [locale, sitePages.map((page) => page.href)]),
+) as SiteVisibility;
 
 function pathnameHasLocale(pathname: string) {
   return locales.some(
@@ -103,7 +119,14 @@ async function refreshAdminSession(
 
     const previewUrl = request.nextUrl.clone();
     previewUrl.pathname = previewPath;
-    const rewrite = NextResponse.rewrite(previewUrl);
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(
+      SITE_VISIBILITY_HEADER,
+      serializeSiteVisibility(adminPreviewVisibility),
+    );
+    const rewrite = NextResponse.rewrite(previewUrl, {
+      request: { headers: requestHeaders },
+    });
     response.cookies.getAll().forEach((cookie) => rewrite.cookies.set(cookie));
     return rewrite;
   }
@@ -126,20 +149,23 @@ export async function proxy(request: NextRequest) {
     return refreshAdminSession(request);
   }
 
-  if (!fullSiteEnabled && pathname !== "/") {
-    const pathnameLocale = getPathnameLocale(pathname);
+  if (pathnameHasLocale(pathname)) {
+    const locale = getPathnameLocale(pathname)!;
+    const visibility = await loadSiteVisibility();
+    const page = pageForPath(pathname);
 
-    if (pathname !== `/${pathnameLocale}`) {
-      const locale = pathnameLocale ?? getPreferredLocale(request);
+    if (page && !isPageVisible(visibility, locale, page.href)) {
       const url = request.nextUrl.clone();
       url.pathname = `/${locale}`;
-
       return NextResponse.redirect(url);
     }
-  }
 
-  if (pathnameHasLocale(pathname)) {
-    return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(
+      SITE_VISIBILITY_HEADER,
+      serializeSiteVisibility(visibility),
+    );
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const locale = pathname === "/" ? defaultLocale : getPreferredLocale(request);

@@ -8,6 +8,7 @@ import { Footer } from "@/components/site-ui";
 import { getDictionary } from "@/lib/dictionaries";
 import { defaultLocale, getAlternates, hasLocale, locales } from "@/lib/i18n";
 import { assets, contact } from "@/lib/site-data";
+import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
 
 export async function generateStaticParams() {
   return locales.map((lang) => ({ lang }));
@@ -63,25 +64,29 @@ export default async function RootLayout({
     notFound();
   }
 
-  const dict = await getDictionary(lang);
-  const fullSiteEnabled = process.env.FULL_SITE_ENABLED === "true";
+  const [dict, visibility] = await Promise.all([
+    getDictionary(lang),
+    getRequestSiteVisibility(),
+  ]);
+  const otherLocale = lang === "fr" ? "en" : "fr";
 
   return (
     <html lang={lang} className="h-full antialiased">
       <body className="flex min-h-full flex-col">
         <SiteHeader
-          fullSiteEnabled={fullSiteEnabled}
           lang={lang}
           logo={assets.headerLogo}
           labels={dict.header}
+          otherLocaleVisibleHrefs={visibility[otherLocale]}
+          visibleHrefs={visibility[lang]}
         />
         {children}
         <Footer
           dict={dict}
           contact={contact}
-          fullSiteEnabled={fullSiteEnabled}
           lang={lang}
           logo={assets.logo}
+          visibleHrefs={visibility[lang]}
         />
         <CmsContentRuntime />
         <script src="/cms-preview-bridge.js" defer />

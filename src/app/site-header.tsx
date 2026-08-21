@@ -11,9 +11,10 @@ type HeaderLink = {
 };
 
 type SiteHeaderProps = {
-  fullSiteEnabled: boolean;
   lang: "en" | "fr";
   logo: string;
+  otherLocaleVisibleHrefs: readonly string[];
+  visibleHrefs: readonly string[];
   labels: {
     homeLabel: string;
     navLabel: string;
@@ -30,22 +31,30 @@ function localizedHref(lang: "en" | "fr", href: string) {
   return href === "/" ? `/${lang}` : `/${lang}${href}`;
 }
 
-function equivalentLanguageHref(pathname: string, nextLang: "en" | "fr") {
+function equivalentLanguageHref(
+  pathname: string,
+  nextLang: "en" | "fr",
+  nextLocaleVisibleHrefs: readonly string[],
+) {
   const segments = pathname.split("/").filter(Boolean);
 
   if (segments[0] === "en" || segments[0] === "fr") {
     segments[0] = nextLang;
-    return `/${segments.join("/")}`;
+    const href = segments.length > 1 ? `/${segments.slice(1).join("/")}` : "/";
+    return nextLocaleVisibleHrefs.includes(href)
+      ? `/${segments.join("/")}`
+      : `/${nextLang}`;
   }
 
   return `/${nextLang}`;
 }
 
 export default function SiteHeader({
-  fullSiteEnabled,
   lang,
   logo,
   labels,
+  otherLocaleVisibleHrefs,
+  visibleHrefs,
 }: SiteHeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuId = useId();
@@ -53,9 +62,15 @@ export default function SiteHeader({
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const otherLang = lang === "fr" ? "en" : "fr";
+  const visibleLinks = labels.links.filter((link) =>
+    visibleHrefs.includes(link.href),
+  );
+  const navigationEnabled = visibleLinks.some((link) => link.href !== "/");
+  const contactVisible = visibleHrefs.includes("/contact");
   const otherLangHref = useMemo(
-    () => equivalentLanguageHref(pathname, otherLang),
-    [otherLang, pathname],
+    () =>
+      equivalentLanguageHref(pathname, otherLang, otherLocaleVisibleHrefs),
+    [otherLang, otherLocaleVisibleHrefs, pathname],
   );
 
   const closeMenu = () => setIsMenuOpen(false);
@@ -120,12 +135,12 @@ export default function SiteHeader({
               className="h-8 w-auto"
             />
           </Link>
-          {fullSiteEnabled ? (
+          {navigationEnabled ? (
             <nav
               aria-label={labels.navLabel}
               className="hidden items-center gap-1 text-sm font-medium text-white/78 lg:flex"
             >
-              {labels.links.map((link) => (
+              {visibleLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={localizedHref(lang, link.href)}
@@ -146,7 +161,7 @@ export default function SiteHeader({
           >
             {otherLang}
           </Link>
-          {fullSiteEnabled ? (
+          {contactVisible ? (
             <Link
               href={localizedHref(lang, "/contact")}
               className="rounded-xl bg-[#e4c58f] px-5 py-3 text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
@@ -156,7 +171,7 @@ export default function SiteHeader({
           ) : null}
         </div>
         <div className="relative lg:hidden">
-          {fullSiteEnabled ? (
+          {navigationEnabled ? (
             <button
               ref={menuButtonRef}
               type="button"
@@ -181,7 +196,7 @@ export default function SiteHeader({
             </Link>
           )}
 
-          {fullSiteEnabled && isMenuOpen ? (
+          {navigationEnabled && isMenuOpen ? (
             <div
               ref={mobileMenuRef}
               id={menuId}
@@ -191,7 +206,7 @@ export default function SiteHeader({
                 aria-label={labels.mobileNavLabel}
                 className="flex flex-col text-sm font-medium text-white/78"
               >
-                {labels.links.map((link) => (
+                {visibleLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={localizedHref(lang, link.href)}
@@ -212,13 +227,15 @@ export default function SiteHeader({
                 >
                   {otherLang}
                 </Link>
-                <Link
-                  href={localizedHref(lang, "/contact")}
-                  className="mt-2 block rounded-xl bg-[#e4c58f] px-5 py-3 text-center text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
-                  onClick={closeMenu}
-                >
-                  {labels.startProject}
-                </Link>
+                {contactVisible ? (
+                  <Link
+                    href={localizedHref(lang, "/contact")}
+                    className="mt-2 block rounded-xl bg-[#e4c58f] px-5 py-3 text-center text-sm font-medium text-[#101211] transition hover:bg-[#e4c58f]/90"
+                    onClick={closeMenu}
+                  >
+                    {labels.startProject}
+                  </Link>
+                ) : null}
               </div>
             </div>
           ) : null}

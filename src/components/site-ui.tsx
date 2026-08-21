@@ -218,9 +218,9 @@ export function ProjectCard({
 export function Footer({
   dict,
   contact,
-  fullSiteEnabled,
   lang,
   logo,
+  visibleHrefs,
 }: {
   dict: Dictionary;
   contact: {
@@ -229,9 +229,9 @@ export function Footer({
     email: string;
     address: string;
   };
-  fullSiteEnabled: boolean;
   lang: Locale;
   logo: string;
+  visibleHrefs: readonly string[];
 }) {
   const currentYear = new Date().getFullYear();
 
@@ -285,23 +285,28 @@ export function Footer({
           <p className="mt-6 w-fit text-sm font-normal text-white/78">
             © {currentYear} {dict.common.copyright}
           </p>
-          {fullSiteEnabled ? (
+          {visibleHrefs.includes("/privacy") ||
+          visibleHrefs.includes("/terms") ? (
             <nav
               aria-label={`${dict.common.privacy} / ${dict.common.terms}`}
               className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-white/55"
             >
-              <Link
-                href={getLocalizedPath(lang, "/privacy")}
-                className="transition hover:text-white"
-              >
-                {dict.common.privacy}
-              </Link>
-              <Link
-                href={getLocalizedPath(lang, "/terms")}
-                className="transition hover:text-white"
-              >
-                {dict.common.terms}
-              </Link>
+              {visibleHrefs.includes("/privacy") ? (
+                <Link
+                  href={getLocalizedPath(lang, "/privacy")}
+                  className="transition hover:text-white"
+                >
+                  {dict.common.privacy}
+                </Link>
+              ) : null}
+              {visibleHrefs.includes("/terms") ? (
+                <Link
+                  href={getLocalizedPath(lang, "/terms")}
+                  className="transition hover:text-white"
+                >
+                  {dict.common.terms}
+                </Link>
+              ) : null}
             </nav>
           ) : null}
         </div>
@@ -333,11 +338,13 @@ export function CtaBand({
   title,
   lead,
   buttonLabel,
+  contactVisible = true,
 }: {
   lang: Locale;
   title: string;
   lead: string;
   buttonLabel: string;
+  contactVisible?: boolean;
 }) {
   return (
     <SectionShell panel>
@@ -353,9 +360,11 @@ export function CtaBand({
             {lead}
           </p>
         </div>
-        <PrimaryButton href={getLocalizedPath(lang, "/contact")}>
-          {buttonLabel}
-        </PrimaryButton>
+        {contactVisible ? (
+          <PrimaryButton href={getLocalizedPath(lang, "/contact")}>
+            {buttonLabel}
+          </PrimaryButton>
+        ) : null}
       </div>
     </SectionShell>
   );

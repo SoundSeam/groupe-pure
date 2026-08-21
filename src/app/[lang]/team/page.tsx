@@ -13,6 +13,7 @@ import {
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, hasLocale } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
+import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
 
 export async function generateMetadata({
   params,
@@ -44,7 +45,10 @@ export default async function TeamPage({
 
   if (!hasLocale(lang)) notFound();
 
-  const dict = await getDictionary(lang);
+  const [dict, visibility] = await Promise.all([
+    getDictionary(lang),
+    getRequestSiteVisibility(),
+  ]);
 
   return (
     <main>
@@ -142,6 +146,7 @@ export default async function TeamPage({
         title={dict.servicesPage.ctaTitle}
         lead={dict.servicesPage.ctaLead}
         buttonLabel={dict.common.startProject}
+        contactVisible={visibility[lang].includes("/contact")}
       />
     </main>
   );

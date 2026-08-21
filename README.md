@@ -22,11 +22,16 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Page visibility
 
-The site is homepage-only by default in every environment. Requests for any
-other page redirect to the homepage in the requested or preferred language.
+Authenticated editors can manage each localized page independently at
+`/admin/pages`. Hidden public pages redirect to the homepage in the same
+language, while authenticated admin previews remain available.
 
-Set `FULL_SITE_ENABLED=true` to make every page available. Missing, empty, and
-`false` values keep secondary pages hidden.
+`FULL_SITE_ENABLED` remains the non-destructive default for pages that have
+never been changed in the visibility manager. Set it to `true` to default those
+pages to visible; missing, empty, and `false` values default them to hidden.
+Once an editor changes a page, its stored setting takes precedence. The English
+and French versions have separate settings, and localized homepages cannot be
+hidden.
 
 ## CMS media verification
 

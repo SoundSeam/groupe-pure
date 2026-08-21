@@ -4,14 +4,7 @@ import AdminEditor from "@/components/admin-editor";
 import { requireAdminIdentity } from "@/lib/auth";
 import { getDictionary } from "@/lib/dictionaries";
 import { hasLocale } from "@/lib/i18n";
-
-const editableRoutes = new Set([
-  "",
-  "services",
-  "projects",
-  "team",
-  "contact",
-]);
+import { isEditablePagePath } from "@/lib/cms/pages";
 
 export default async function AdminPageEditor({
   params,
@@ -20,12 +13,12 @@ export default async function AdminPageEditor({
 }) {
   const { lang, slug = [] } = await params;
   const route = slug.join("/");
+  const pagePath = `/${lang}${route ? `/${route}` : ""}`;
 
-  if (!hasLocale(lang) || !editableRoutes.has(route)) {
+  if (!hasLocale(lang) || !isEditablePagePath(pagePath)) {
     notFound();
   }
 
-  const pagePath = `/${lang}${route ? `/${route}` : ""}`;
   const identity = await requireAdminIdentity(`/admin${pagePath}`);
   const dictionary = route === "projects" ? await getDictionary(lang) : null;
 

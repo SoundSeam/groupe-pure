@@ -55,3 +55,4 @@ next-env.d.ts
 /tmp/
 /groupe-pure-logo-transparent.png
 /supabase/functions/**/node_modules/
+/supabase/.temp/

@@ -13,20 +13,22 @@ enum CmsRevisionState {
 }
 
 model CmsPage {
-  id                String        @id @default(cuid())
-  path              String        @unique
-  locale            String
-  draftContent      Json          @default("{}")
-  publishedContent  Json          @default("{}")
-  revision          Int           @default(0)
-  publishedRevision Int           @default(0)
-  updatedBy         String?
-  publishedAt       DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  revisions         CmsRevision[]
-  assets            CmsAsset[]
-  assetUsages       CmsAssetUsage[]
+  id                  String          @id @default(cuid())
+  path                String          @unique
+  locale              String
+  draftContent        Json            @default("{}")
+  publishedContent    Json            @default("{}")
+  revision            Int             @default(0)
+  publishedRevision   Int             @default(0)
+  isVisible           Boolean?
+  visibilityUpdatedBy String?
+  updatedBy           String?
+  publishedAt         DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  revisions           CmsRevision[]
+  assets              CmsAsset[]
+  assetUsages         CmsAssetUsage[]
 
   @@index([locale])
 }
@@ -46,19 +48,19 @@ model CmsRevision {
 }
 
 model CmsAsset {
-  id               String    @id @default(cuid())
+  id               String          @id @default(cuid())
   pageId           String?
   fieldKey         String
   fileName         String
-  storagePath      String    @unique
+  storagePath      String          @unique
   publicUrl        String
   mimeType         String
   size             Int
   uploadedBy       String
   lastReferencedAt DateTime?
   retainedUntil    DateTime?
-  createdAt        DateTime  @default(now())
-  page             CmsPage?  @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+  page             CmsPage?        @relation(fields: [pageId], references: [id], onDelete: SetNull)
   usages           CmsAssetUsage[]
 
   @@index([pageId, fieldKey, createdAt])

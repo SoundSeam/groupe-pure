@@ -18,6 +18,7 @@ import {
   partnerLogos,
 } from "@/lib/site-data";
 import type { Locale } from "@/lib/i18n";
+import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
 
 export async function generateMetadata({
   params,
@@ -55,9 +56,12 @@ export default async function Home({
     notFound();
   }
 
-  const dict = await getDictionary(lang);
+  const [dict, visibility] = await Promise.all([
+    getDictionary(lang),
+    getRequestSiteVisibility(),
+  ]);
   const locale = lang as Locale;
-  const fullSiteEnabled = process.env.FULL_SITE_ENABLED === "true";
+  const contactVisible = visibility[locale].includes("/contact");
   const homeFormLabels = {
     ...dict.form,
     submit: dict.home.contactButton,
@@ -93,7 +97,7 @@ export default async function Home({
             <p className="mt-6 max-w-xl text-lg font-light leading-8 text-white/70 [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] sm:text-xl">
               {dict.home.heroLead}
             </p>
-            {fullSiteEnabled ? (
+            {contactVisible ? (
               <div className="mt-10">
                 <PrimaryButton href={getLocalizedPath(locale, "/contact")}>
                   {dict.common.startProject}

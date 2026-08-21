@@ -9,6 +9,7 @@ import {
   Desktop,
   DeviceMobile,
   DotsSixVertical,
+  Eye,
   GlobeHemisphereWest,
   LockKey,
   Plus,
@@ -17,6 +18,7 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -52,6 +54,7 @@ import {
   type CmsUploadStatus,
 } from "@/lib/cms/upload-contract";
 import { isCmsContent } from "@/lib/cms/types";
+import { sitePages } from "@/lib/cms/pages";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type HistoryPatch = {
@@ -100,21 +103,19 @@ type FrameCallbacks = {
 };
 
 const pageOptions = {
-  fr: [
-    { path: "/fr", label: "Accueil" },
-    { path: "/fr/services", label: "Services" },
-    { path: "/fr/projects", label: "Projets" },
-    { path: "/fr/team", label: "Équipe" },
-    { path: "/fr/contact", label: "Contact" },
-  ],
-  en: [
-    { path: "/en", label: "Home" },
-    { path: "/en/services", label: "Services" },
-    { path: "/en/projects", label: "Projects" },
-    { path: "/en/team", label: "Team" },
-    { path: "/en/contact", label: "Contact" },
-  ],
-} as const;
+  fr: sitePages
+    .filter((page) => page.editable)
+    .map((page) => ({
+      path: page.href === "/" ? "/fr" : `/fr${page.href}`,
+      label: page.labels.fr,
+    })),
+  en: sitePages
+    .filter((page) => page.editable)
+    .map((page) => ({
+      path: page.href === "/" ? "/en" : `/en${page.href}`,
+      label: page.labels.en,
+    })),
+};
 
 const adminActionLabels = {
   fr: {
@@ -1563,6 +1564,19 @@ export default function AdminEditor({
             className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/45"
           />
         </div>
+        <Link
+          href="/admin/pages"
+          aria-label={
+            locale === "fr" ? "Visibilité des pages" : "Page visibility"
+          }
+          title={
+            locale === "fr" ? "Visibilité des pages" : "Page visibility"
+          }
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-white/60 transition hover:bg-white/8 hover:text-white"
+        >
+          <Eye className="h-4 w-4" />
+          <span className="hidden lg:inline">Pages</span>
+        </Link>
         <button
           type="button"
           disabled={busy}
