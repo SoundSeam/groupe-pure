@@ -60,7 +60,7 @@ export default function AdminPages({
     } | null;
 
     if (!response.ok || !payload?.visibility) {
-      setMessage(payload?.error ?? "The page visibility could not be updated.");
+      setMessage("La visibilité de la page n’a pas pu être mise à jour.");
       setPending(null);
       return;
     }
@@ -69,8 +69,8 @@ export default function AdminPages({
     setPending(null);
     setMessage(
       visible
-        ? `${path} is now visible on the site.`
-        : `${path} is now hidden from the public site.`,
+        ? `${path} est maintenant visible sur le site.`
+        : `${path} est maintenant masquée du site public.`,
     );
   }
 
@@ -90,7 +90,7 @@ export default function AdminPages({
       <main className="grid min-h-screen place-items-center bg-[#101211] text-white">
         <div className="flex items-center gap-2 text-sm text-white/60">
           <SpinnerGap className="h-4 w-4 animate-spin" aria-hidden="true" />
-          Signing out…
+          Déconnexion…
         </div>
       </main>
     );
@@ -109,7 +109,7 @@ export default function AdminPages({
             className="flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-white/60 transition hover:bg-white/8 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
-            Editor
+            Éditeur
           </Link>
           <button
             type="button"
@@ -118,33 +118,36 @@ export default function AdminPages({
             className="ml-auto flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-white/60 transition hover:bg-white/8 hover:text-white"
           >
             <SignOut className="h-4 w-4" />
-            Sign out
+            Déconnexion
           </button>
         </div>
       </header>
 
       <div className="mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
         <div className="max-w-2xl">
-          <p className="text-sm font-medium text-[#e4c58f]">Site settings</p>
+          <p className="text-sm font-medium text-[#e4c58f]">
+            Paramètres du site
+          </p>
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">
-            Page visibility
+            Visibilité des pages
           </h1>
           <p className="mt-4 text-base font-light leading-7 text-white/60">
-            Choose which localized pages are available publicly. Hidden pages
-            stay editable and can still be opened through authenticated preview.
+            Choisissez les pages disponibles publiquement dans chaque langue.
+            Les pages masquées restent modifiables et accessibles dans l’aperçu
+            administrateur.
           </p>
         </div>
 
         {message ? (
           <div
             className={`mt-8 flex items-start gap-2 rounded-xl border px-4 py-3 text-sm ${
-              message.includes("could not")
+              message.includes("n’a pas pu")
                 ? "border-red-400/25 bg-red-400/8 text-red-200"
                 : "border-emerald-400/25 bg-emerald-400/8 text-emerald-200"
             }`}
             role="status"
           >
-            {message.includes("could not") ? (
+            {message.includes("n’a pas pu") ? (
               <WarningCircle className="mt-0.5 h-4 w-4 shrink-0" weight="fill" />
             ) : (
               <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" weight="fill" />
@@ -157,7 +160,7 @@ export default function AdminPages({
           <div className="hidden grid-cols-[minmax(0,1fr)_13rem_13rem] border-b border-white/10 px-5 py-3 text-xs font-medium uppercase tracking-[0.12em] text-white/35 md:grid">
             <span>Page</span>
             <span>Français</span>
-            <span>English</span>
+            <span>Anglais</span>
           </div>
           {sitePages.map((page) => (
             <div
@@ -165,7 +168,7 @@ export default function AdminPages({
               className="grid gap-5 border-b border-white/10 p-5 last:border-b-0 md:grid-cols-[minmax(0,1fr)_13rem_13rem] md:items-center"
             >
               <div>
-                <p className="font-medium text-white">{page.labels.en}</p>
+                <p className="font-medium text-white">{page.labels.fr}</p>
                 <p className="mt-1 text-sm text-white/42">
                   {page.href === "/" ? "/:language" : `/:language${page.href}`}
                 </p>
@@ -178,14 +181,14 @@ export default function AdminPages({
                 return (
                   <div key={locale} className="flex items-center justify-between gap-3 md:block">
                     <span className="text-xs font-medium uppercase text-white/35 md:hidden">
-                      {locale === "fr" ? "Français" : "English"}
+                      {locale === "fr" ? "Français" : "Anglais"}
                     </span>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         role="switch"
                         aria-checked={visible}
-                        aria-label={`${page.labels[locale]} is ${visible ? "visible" : "hidden"}`}
+                        aria-label={`${page.labels[locale]} est ${visible ? "visible" : "masquée"}`}
                         disabled={!page.hideable || pending !== null}
                         onClick={() =>
                           void updateVisibility(locale, page.href, !visible)
@@ -210,13 +213,13 @@ export default function AdminPages({
                         ) : visible ? (
                           "Visible"
                         ) : (
-                          "Hidden"
+                          "Masquée"
                         )}
                       </span>
                       {page.editable ? (
                         <Link
                           href={`/admin${path}`}
-                          aria-label={`Edit ${page.labels[locale]}`}
+                          aria-label={`Modifier ${page.labels[locale]}`}
                           className="rounded-md p-1.5 text-white/40 transition hover:bg-white/8 hover:text-white"
                         >
                           <PencilSimple className="h-4 w-4" />
@@ -226,7 +229,7 @@ export default function AdminPages({
                         href={`/admin-preview${path}`}
                         target="_blank"
                         rel="noreferrer"
-                        aria-label={`Preview ${page.labels[locale]}`}
+                        aria-label={`Prévisualiser ${page.labels[locale]}`}
                         className="rounded-md p-1.5 text-white/40 transition hover:bg-white/8 hover:text-white"
                       >
                         <ArrowSquareOut className="h-4 w-4" />
@@ -241,10 +244,10 @@ export default function AdminPages({
 
         <div className="mt-6 flex flex-wrap gap-5 text-sm text-white/42">
           <span className="flex items-center gap-2">
-            <Eye className="h-4 w-4 text-emerald-300" /> Visible pages can be visited publicly
+            <Eye className="h-4 w-4 text-emerald-300" /> Les pages visibles sont accessibles publiquement
           </span>
           <span className="flex items-center gap-2">
-            <EyeSlash className="h-4 w-4" /> Hidden pages redirect to the localized homepage
+            <EyeSlash className="h-4 w-4" /> Les pages masquées redirigent vers l’accueil dans la même langue
           </span>
         </div>
       </div>
