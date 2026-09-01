@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  ListChecks,
   SignOut,
   SpinnerGap,
 } from "@phosphor-icons/react";
@@ -92,6 +93,13 @@ export default function AdminPages({
           >
             <ArrowLeft className="h-4 w-4" />
             Retour à l’éditeur
+          </Link>
+          <Link
+            href="/admin/forms"
+            className="ml-2 flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium text-white/65 transition hover:bg-white/8 hover:text-white"
+          >
+            <ListChecks className="h-4 w-4" />
+            Formulaires
           </Link>
           <button
             type="button"

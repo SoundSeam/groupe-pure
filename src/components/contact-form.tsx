@@ -2,59 +2,24 @@
 
 import { UploadSimple } from "@phosphor-icons/react";
 import Script from "next/script";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createFormDefinition,
+  definitionFieldOrder,
+  labelsForForm,
+  PROJECT_TYPES,
+  type CmsFormDefinition,
+  type CmsFormsPayload,
+  type ContactFormLabels,
+  type ProjectType,
+} from "@/lib/cms/forms";
 import { fieldClass } from "./styles";
 
-type ProjectType = "architecture" | "construction" | "excavation";
 type Locale = "fr" | "en";
-
-type ContactFormLabels = {
-  name: string;
-  email: string;
-  phone: string;
-  projectType: string;
-  projectTypePlaceholder: string;
-  subcategory: string;
-  subcategoryPlaceholder: string;
-  subcategoryDisabledPlaceholder: string;
-  budgetRange: string;
-  budgetRangePlaceholder: string;
-  message: string;
-  attachment: string;
-  submit: string;
-  sending: string;
-  required: string;
-  invalidEmail: string;
-  invalidAttachment: string;
-  attachmentTooLarge: string;
-  submissionError: string;
-  rateLimited: string;
-  verificationError: string;
-  verificationUnavailable: string;
-  success: string;
-  options: Record<ProjectType, string>;
-  subcategoryOptions: Record<ProjectType, readonly string[]>;
-  budgetOptions: readonly string[];
-  emailSubject: string;
-  emailBodyLabels: {
-    name: string;
-    email: string;
-    phone: string;
-    projectType: string;
-    subcategory: string;
-    budgetRange: string;
-    attachment: string;
-    message: string;
-  };
-};
-
-const projectTypes: ProjectType[] = [
-  "architecture",
-  "construction",
-  "excavation",
-];
+const projectTypes: ProjectType[] = [...PROJECT_TYPES];
 
 function isProjectType(value: string): value is ProjectType {
   return projectTypes.some((projectType) => projectType === value);
@@ -62,8 +27,10 @@ function isProjectType(value: string): value is ProjectType {
 
 type ContactFormProps = {
   alignSubmitRight?: boolean;
+  definition?: CmsFormDefinition;
   labels: ContactFormLabels;
   locale: Locale;
+  preview?: boolean;
   submissionType?: "contact" | "application";
 };
 
@@ -71,6 +38,7 @@ type Errors = Partial<
   Record<
     | "name"
     | "email"
+    | "phone"
     | "projectType"
     | "subcategory"
     | "budgetRange"
@@ -119,6 +87,7 @@ const turnstileSiteKey =
 const errorFields = new Set<keyof Errors>([
   "name",
   "email",
+  "phone",
   "projectType",
   "subcategory",
   "budgetRange",
@@ -185,10 +154,28 @@ async function getFunctionErrorCode(error: unknown) {
 
 export default function ContactForm({
   alignSubmitRight = false,
-  labels,
+  definition: suppliedDefinition,
+  labels: fallbackLabels,
   locale,
+  preview = false,
   submissionType = "contact",
 }: ContactFormProps) {
+  const pathname = usePathname();
+  const fallbackDefinition = useMemo(
+    () => createFormDefinition(fallbackLabels),
+    [fallbackLabels],
+  );
+  const [publishedDefinition, setPublishedDefinition] =
+    useState<CmsFormDefinition | null>(null);
+  const definition =
+    suppliedDefinition ?? publishedDefinition ?? fallbackDefinition;
+  const labels = useMemo(
+    () => labelsForForm(definition, fallbackLabels),
+    [definition, fallbackLabels],
+  );
+  const enabledProjectTypes = projectTypes.filter(
+    (projectType) => definition.projectTypes[projectType].enabled,
+  );
   const [projectType, setProjectType] = useState<ProjectType | "">("");
   const [subcategory, setSubcategory] = useState("");
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
@@ -204,7 +191,37 @@ export default function ContactForm({
   const turnstileWidgetId = useRef<string | null>(null);
 
   useEffect(() => {
+    if (suppliedDefinition || preview) return;
+
+    let active = true;
+    const controller = new AbortController();
+
+    void fetch("/api/cms/forms", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) =>
+        response.ok ? ((await response.json()) as CmsFormsPayload) : null,
+      )
+      .then((payload) => {
+        if (!active || !payload) return;
+        setPublishedDefinition(
+          payload.config.locales[locale][
+            submissionType === "application" ? "application" : "contact"
+          ],
+        );
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [locale, pathname, preview, submissionType, suppliedDefinition]);
+
+  useEffect(() => {
     if (
+      preview ||
       !turnstileSiteKey ||
       !turnstileScriptReady ||
       !turnstileContainer.current ||
@@ -247,6 +264,7 @@ export default function ContactForm({
   }, [
     labels.verificationError,
     labels.verificationUnavailable,
+    preview,
     turnstileScriptReady,
   ]);
 
@@ -320,6 +338,8 @@ export default function ContactForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (preview) return;
+
     const form = event.currentTarget;
     const formData = new FormData(form);
     const name = String(formData.get("name") ?? "").trim();
@@ -338,11 +358,24 @@ export default function ContactForm({
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       nextErrors.email = labels.invalidEmail;
     }
+    if (
+      definition.fields.phone.enabled &&
+      definition.fields.phone.required &&
+      !phone
+    ) {
+      nextErrors.phone = labels.required;
+    }
     if (!projectTypeValue) nextErrors.projectType = labels.required;
     if (!subcategoryValue) nextErrors.subcategory = labels.required;
     if (!budgetRange) nextErrors.budgetRange = labels.required;
     if (!message) nextErrors.message = labels.required;
-    if (attachmentFile && !getAttachmentType(attachmentFile)) {
+    if (
+      definition.fields.attachment.enabled &&
+      definition.fields.attachment.required &&
+      !attachmentFile
+    ) {
+      nextErrors.attachment = labels.required;
+    } else if (attachmentFile && !getAttachmentType(attachmentFile)) {
       nextErrors.attachment = labels.invalidAttachment;
     } else if (attachmentFile && attachmentFile.size > maxAttachmentBytes) {
       nextErrors.attachment = labels.attachmentTooLarge;
@@ -363,7 +396,7 @@ export default function ContactForm({
       return;
     }
 
-    if (turnstileSiteKey && !turnstileToken) {
+    if (!preview && turnstileSiteKey && !turnstileToken) {
       setStatus(labels.verificationError);
       resetTurnstile();
       return;
@@ -487,7 +520,7 @@ export default function ContactForm({
 
   return (
     <>
-      {turnstileSiteKey ? (
+      {!preview && turnstileSiteKey ? (
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
           strategy="afterInteractive"
@@ -502,6 +535,7 @@ export default function ContactForm({
       className="grid gap-4 sm:grid-cols-2"
       data-cms-ignore
       noValidate
+      data-form-preview={preview ? "true" : undefined}
       aria-busy={isSubmitting}
       onChange={(event) => {
         if (!isSubmitting) {
@@ -537,7 +571,7 @@ export default function ContactForm({
           type="text"
         />
       </div>
-      <div>
+      <div style={{ order: definitionFieldOrder(definition, "name") }}>
         <label className="sr-only" htmlFor="name">
           {labels.name}
         </label>
@@ -546,7 +580,7 @@ export default function ContactForm({
           id="name"
           maxLength={120}
           name="name"
-          placeholder={labels.name}
+          placeholder={definition.fields.name.placeholder}
           type="text"
           aria-invalid={Boolean(errors.name)}
           aria-describedby={errors.name ? "name-error" : undefined}
@@ -557,7 +591,7 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      <div>
+      <div style={{ order: definitionFieldOrder(definition, "email") }}>
         <label className="sr-only" htmlFor="email">
           {labels.email}
         </label>
@@ -566,7 +600,7 @@ export default function ContactForm({
           id="email"
           maxLength={254}
           name="email"
-          placeholder={labels.email}
+          placeholder={definition.fields.email.placeholder}
           type="email"
           aria-invalid={Boolean(errors.email)}
           aria-describedby={errors.email ? "email-error" : undefined}
@@ -577,7 +611,8 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      <div>
+      {definition.fields.phone.enabled ? (
+      <div style={{ order: definitionFieldOrder(definition, "phone") }}>
         <label className="sr-only" htmlFor="phone">
           {labels.phone}
         </label>
@@ -586,11 +621,19 @@ export default function ContactForm({
           id="phone"
           maxLength={50}
           name="phone"
-          placeholder={labels.phone}
+          placeholder={definition.fields.phone.placeholder}
           type="tel"
+          aria-invalid={Boolean(errors.phone)}
+          aria-describedby={errors.phone ? "phone-error" : undefined}
         />
+        {errors.phone ? (
+          <p id="phone-error" className="mt-2 text-sm text-white/65">
+            {errors.phone}
+          </p>
+        ) : null}
       </div>
-      <div>
+      ) : null}
+      <div style={{ order: definitionFieldOrder(definition, "projectType") }}>
         <label className="sr-only" htmlFor="projectType">
           {labels.projectType}
         </label>
@@ -610,7 +653,7 @@ export default function ContactForm({
             <option value="" disabled>
               {labels.projectTypePlaceholder}
             </option>
-            {projectTypes.map((option) => (
+            {enabledProjectTypes.map((option) => (
               <option key={option} value={option}>
                 {labels.options[option]}
               </option>
@@ -637,7 +680,7 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      <div>
+      <div style={{ order: definitionFieldOrder(definition, "subcategory") }}>
         <label className="sr-only" htmlFor="subcategory">
           {labels.subcategory}
         </label>
@@ -689,7 +732,7 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      <div>
+      <div style={{ order: definitionFieldOrder(definition, "budgetRange") }}>
         <label className="sr-only" htmlFor="budgetRange">
           {labels.budgetRange}
         </label>
@@ -735,7 +778,10 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      <div className="sm:col-span-2">
+      <div
+        className="sm:col-span-2"
+        style={{ order: definitionFieldOrder(definition, "message") }}
+      >
         <label className="sr-only" htmlFor="message">
           {labels.message}
         </label>
@@ -744,7 +790,7 @@ export default function ContactForm({
           id="message"
           maxLength={5000}
           name="message"
-          placeholder={labels.message}
+          placeholder={definition.fields.message.placeholder}
           aria-invalid={Boolean(errors.message)}
           aria-describedby={errors.message ? "message-error" : undefined}
         />
@@ -754,7 +800,11 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      <div className="sm:col-span-2">
+      {definition.fields.attachment.enabled ? (
+      <div
+        className="sm:col-span-2"
+        style={{ order: definitionFieldOrder(definition, "attachment") }}
+      >
         <input
           accept=".doc,.docx,.heic,.jpeg,.jpg,.pdf,.png,.webp"
           aria-describedby={
@@ -800,7 +850,7 @@ export default function ContactForm({
               attachmentFile ? "text-white" : "text-white/40"
             }`}
           >
-            {attachmentFile?.name || labels.attachment}
+            {attachmentFile?.name || definition.fields.attachment.placeholder}
           </span>
         </label>
         {errors.attachment ? (
@@ -812,8 +862,9 @@ export default function ContactForm({
           </p>
         ) : null}
       </div>
-      {turnstileSiteKey ? (
-        <div className="sm:col-span-2">
+      ) : null}
+      {!preview && turnstileSiteKey ? (
+        <div className="sm:col-span-2" style={{ order: 90 }}>
           <div
             ref={turnstileContainer}
             aria-label={labels.verificationError}
@@ -821,9 +872,9 @@ export default function ContactForm({
           />
         </div>
       ) : null}
-      <div className="sm:col-span-2">
+      <div className="sm:col-span-2" style={{ order: 100 }}>
         <button
-          type="submit"
+          type={preview ? "button" : "submit"}
           disabled={isSubmitting}
           className={`rounded-xl bg-[#e4c58f] px-9 py-4 text-lg font-medium text-[#101211] transition hover:bg-[#e4c58f]/90 disabled:cursor-wait disabled:opacity-65 ${
             alignSubmitRight ? "ml-auto block" : ""

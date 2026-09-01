@@ -12,6 +12,7 @@ import {
   Eye,
   GlobeHemisphereWest,
   LockKey,
+  ListChecks,
   Plus,
   SignOut,
   SpinnerGap,
@@ -1576,6 +1577,17 @@ export default function AdminEditor({
         >
           <Eye className="h-4 w-4" />
           <span className="hidden lg:inline">Pages</span>
+        </Link>
+        <Link
+          href="/admin/forms"
+          aria-label={locale === "fr" ? "Formulaires" : "Forms"}
+          title={locale === "fr" ? "Formulaires" : "Forms"}
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-white/60 transition hover:bg-white/8 hover:text-white"
+        >
+          <ListChecks className="h-4 w-4" />
+          <span className="hidden lg:inline">
+            {locale === "fr" ? "Formulaires" : "Forms"}
+          </span>
         </Link>
         <button
           type="button"
