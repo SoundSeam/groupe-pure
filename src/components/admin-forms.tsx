@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  ArrowDown,
   ArrowLeft,
-  ArrowUp,
   Check,
   Eye,
   FloppyDisk,
@@ -30,6 +28,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Activity = "idle" | "loading" | "saving" | "publishing" | "error";
+type EditorSectionId = "fields" | "choices" | "messages";
 
 const fieldNames: Record<FormLocale, Record<FormFieldId, string>> = {
   fr: {
@@ -57,6 +56,14 @@ const fieldNames: Record<FormLocale, Record<FormFieldId, string>> = {
 const formNames: Record<FormLocale, Record<FormKind, string>> = {
   fr: { contact: "Demande de projet", application: "Candidature" },
   en: { contact: "Project inquiry", application: "Application" },
+};
+
+const sectionNames: Record<
+  FormLocale,
+  Record<EditorSectionId, string>
+> = {
+  fr: { fields: "Champs", choices: "Choix", messages: "Messages" },
+  en: { fields: "Fields", choices: "Choices", messages: "Messages" },
 };
 
 const messageNames: Record<
@@ -173,6 +180,8 @@ export default function AdminForms({
   const [serverSnapshot, setServerSnapshot] = useState(initialConfig);
   const [locale, setLocale] = useState<FormLocale>("fr");
   const [formKind, setFormKind] = useState<FormKind>("contact");
+  const [activeSection, setActiveSection] =
+    useState<EditorSectionId>("fields");
   const [revision, setRevision] = useState(0);
   const [publishedRevision, setPublishedRevision] = useState(0);
   const [activity, setActivity] = useState<Activity>("loading");
@@ -230,20 +239,6 @@ export default function AdminForms({
     });
     setActivity("idle");
     setMessage("");
-  }
-
-  function moveField(fieldId: FormFieldId, direction: -1 | 1) {
-    editDefinition((draft) => {
-      const index = draft.fieldOrder.indexOf(fieldId);
-      const destination = index + direction;
-      if (index < 0 || destination < 0 || destination >= draft.fieldOrder.length) {
-        return;
-      }
-      [draft.fieldOrder[index], draft.fieldOrder[destination]] = [
-        draft.fieldOrder[destination],
-        draft.fieldOrder[index],
-      ];
-    });
   }
 
   async function saveDraft() {
@@ -410,44 +405,9 @@ export default function AdminForms({
       </header>
 
       <div className="mx-auto w-full max-w-[1500px] px-4 py-6 sm:px-6 sm:py-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex rounded-lg border border-white/10 bg-[#111412] p-1">
-            {FORM_KINDS_UI.map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                onClick={() => setFormKind(kind)}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                  formKind === kind
-                    ? "bg-white text-[#101211]"
-                    : "text-white/58 hover:text-white"
-                }`}
-              >
-                {formNames[locale][kind]}
-              </button>
-            ))}
-          </div>
-          <div className="flex rounded-lg border border-white/10 bg-[#111412] p-1">
-            {(["fr", "en"] as const).map((nextLocale) => (
-              <button
-                key={nextLocale}
-                type="button"
-                onClick={() => setLocale(nextLocale)}
-                className={`rounded-md px-3 py-2 text-xs font-semibold uppercase transition ${
-                  locale === nextLocale
-                    ? "bg-[#e4c58f] text-[#101211]"
-                    : "text-white/55 hover:text-white"
-                }`}
-              >
-                {nextLocale}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {message ? (
           <p
-            className={`mt-4 text-sm sm:hidden ${activity === "error" ? "text-red-300" : "text-white/55"}`}
+            className={`mb-4 text-sm sm:hidden ${activity === "error" ? "text-red-300" : "text-white/55"}`}
             role="status"
           >
             {message}
@@ -455,273 +415,343 @@ export default function AdminForms({
         ) : null}
 
         <div
-          className={`mt-6 grid items-start gap-8 transition xl:grid-cols-[minmax(0,760px)_minmax(430px,1fr)] ${
+          className={`grid items-start gap-7 transition xl:grid-cols-[minmax(0,760px)_minmax(430px,1fr)] ${
             busy ? "pointer-events-none opacity-65" : ""
           }`}
         >
-          <div className="space-y-6">
-            <EditorSection
-              title={locale === "fr" ? "Champs" : "Fields"}
-              description={
-                locale === "fr"
-                  ? "Modifiez le texte et l’ordre. Le téléphone et la pièce jointe peuvent être masqués."
-                  : "Edit wording and order. Phone and attachment can be hidden."
-              }
-            >
-              <div className="divide-y divide-white/8">
-                {definition.fieldOrder.map((fieldId, index) => {
-                  const field = definition.fields[fieldId];
-                  const optional = fieldId === "phone" || fieldId === "attachment";
+          <section className="overflow-hidden rounded-xl border border-white/10 bg-[#111412] shadow-xl shadow-black/10">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
+              <div className="flex rounded-lg bg-white/[0.045] p-1">
+                {FORM_KINDS_UI.map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    onClick={() => setFormKind(kind)}
+                    className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+                      formKind === kind
+                        ? "bg-white text-[#101211] shadow-sm"
+                        : "text-white/58 hover:text-white"
+                    }`}
+                  >
+                    {formNames[locale][kind]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex rounded-lg bg-white/[0.045] p-1">
+                {(["fr", "en"] as const).map((nextLocale) => (
+                  <button
+                    key={nextLocale}
+                    type="button"
+                    onClick={() => setLocale(nextLocale)}
+                    className={`rounded-md px-3 py-2 text-xs font-semibold uppercase transition ${
+                      locale === nextLocale
+                        ? "bg-[#e4c58f] text-[#101211]"
+                        : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    {nextLocale}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                  return (
-                    <div key={fieldId} className="grid gap-3 py-5 first:pt-0 last:pb-0 sm:grid-cols-[2.25rem_minmax(0,1fr)]">
-                      <div className="flex gap-1 sm:flex-col">
-                        <OrderButton
-                          label="Monter"
-                          disabled={index === 0 || busy}
-                          onClick={() => moveField(fieldId, -1)}
-                        >
-                          <ArrowUp />
-                        </OrderButton>
-                        <OrderButton
-                          label="Descendre"
-                          disabled={index === definition.fieldOrder.length - 1 || busy}
-                          onClick={() => moveField(fieldId, 1)}
-                        >
-                          <ArrowDown />
-                        </OrderButton>
-                      </div>
-                      <div>
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <h3 className="text-sm font-semibold text-white">
-                            {fieldNames[locale][fieldId]}
-                          </h3>
-                          {optional ? (
-                            <div className="flex items-center gap-4 text-xs text-white/60">
-                              <SimpleCheckbox
-                                checked={field.enabled}
-                                label={locale === "fr" ? "Afficher" : "Show"}
-                                onChange={(checked) =>
-                                  editDefinition((draft) => {
-                                    draft.fields[fieldId].enabled = checked;
-                                    if (!checked) draft.fields[fieldId].required = false;
-                                  })
-                                }
-                              />
-                              <SimpleCheckbox
-                                checked={field.required}
-                                disabled={!field.enabled}
-                                label={locale === "fr" ? "Obligatoire" : "Required"}
-                                onChange={(checked) =>
-                                  editDefinition((draft) => {
-                                    draft.fields[fieldId].required = checked;
-                                  })
-                                }
-                              />
-                            </div>
-                          ) : (
-                            <span className="text-[11px] text-white/35">
-                              {locale === "fr" ? "Champ essentiel" : "Core field"}
-                            </span>
-                          )}
+            <nav
+              className="flex border-b border-white/10 px-5 sm:px-6"
+              aria-label={locale === "fr" ? "Sections du formulaire" : "Form sections"}
+            >
+              {EDITOR_SECTIONS.map((section) => (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => setActiveSection(section)}
+                  className={`relative px-4 py-4 text-sm font-medium transition first:pl-0 ${
+                    activeSection === section
+                      ? "text-white after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[#e4c58f] first:after:left-0"
+                      : "text-white/42 hover:text-white/72"
+                  }`}
+                >
+                  {sectionNames[locale][section]}
+                </button>
+              ))}
+            </nav>
+
+            <div className="p-5 sm:p-6">
+              {activeSection === "fields" ? (
+                <>
+                  <SectionIntro
+                    title={locale === "fr" ? "Champs" : "Fields"}
+                    description={
+                      locale === "fr"
+                        ? "Modifiez ce que les visiteurs voient. Le téléphone et la pièce jointe peuvent être masqués."
+                        : "Edit what visitors see. Phone and attachment can be hidden."
+                    }
+                  />
+                  <div className="mt-6 divide-y divide-white/8">
+                    {definition.fieldOrder.map((fieldId) => {
+                      const field = definition.fields[fieldId];
+                      const optional =
+                        fieldId === "phone" || fieldId === "attachment";
+
+                      return (
+                        <div key={fieldId} className="py-5 first:pt-0 last:pb-0">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <h3 className="text-sm font-semibold text-white">
+                              {fieldNames[locale][fieldId]}
+                            </h3>
+                            {optional ? (
+                              <div className="flex items-center gap-4 text-xs text-white/60">
+                                <SimpleCheckbox
+                                  checked={field.enabled}
+                                  label={locale === "fr" ? "Afficher" : "Show"}
+                                  onChange={(checked) =>
+                                    editDefinition((draft) => {
+                                      draft.fields[fieldId].enabled = checked;
+                                      if (!checked) {
+                                        draft.fields[fieldId].required = false;
+                                      }
+                                    })
+                                  }
+                                />
+                                <SimpleCheckbox
+                                  checked={field.required}
+                                  disabled={!field.enabled}
+                                  label={
+                                    locale === "fr" ? "Obligatoire" : "Required"
+                                  }
+                                  onChange={(checked) =>
+                                    editDefinition((draft) => {
+                                      draft.fields[fieldId].required = checked;
+                                    })
+                                  }
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-[11px] text-white/35">
+                                {locale === "fr" ? "Toujours affiché" : "Always shown"}
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <TextControl
+                              label={locale === "fr" ? "Libellé" : "Label"}
+                              value={field.label}
+                              onChange={(value) =>
+                                editDefinition((draft) => {
+                                  draft.fields[fieldId].label = value;
+                                })
+                              }
+                            />
+                            <TextControl
+                              label={
+                                fieldId === "attachment"
+                                  ? locale === "fr"
+                                    ? "Texte affiché"
+                                    : "Displayed text"
+                                  : locale === "fr"
+                                    ? "Texte dans le champ"
+                                    : "Placeholder"
+                              }
+                              value={field.placeholder}
+                              onChange={(value) =>
+                                editDefinition((draft) => {
+                                  draft.fields[fieldId].placeholder = value;
+                                })
+                              }
+                            />
+                            {fieldId === "subcategory" ? (
+                              <div className="sm:col-span-2">
+                                <TextControl
+                                  label={
+                                    locale === "fr"
+                                      ? "Avant la sélection du type"
+                                      : "Before a type is selected"
+                                  }
+                                  value={field.disabledPlaceholder ?? ""}
+                                  onChange={(value) =>
+                                    editDefinition((draft) => {
+                                      draft.fields.subcategory.disabledPlaceholder =
+                                        value;
+                                    })
+                                  }
+                                />
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                          <TextControl
-                            label={locale === "fr" ? "Libellé" : "Label"}
-                            value={field.label}
-                            onChange={(value) =>
-                              editDefinition((draft) => {
-                                draft.fields[fieldId].label = value;
-                              })
-                            }
-                          />
-                          <TextControl
-                            label={
-                              fieldId === "attachment"
-                                ? locale === "fr"
-                                  ? "Texte affiché"
-                                  : "Displayed text"
-                                : locale === "fr"
-                                  ? "Texte dans le champ"
-                                  : "Placeholder"
-                            }
-                            value={field.placeholder}
-                            onChange={(value) =>
-                              editDefinition((draft) => {
-                                draft.fields[fieldId].placeholder = value;
-                              })
-                            }
-                          />
-                          {fieldId === "subcategory" ? (
-                            <div className="sm:col-span-2">
+                      );
+                    })}
+                  </div>
+                </>
+              ) : null}
+
+              {activeSection === "choices" ? (
+                <>
+                  <SectionIntro
+                    title={locale === "fr" ? "Choix" : "Choices"}
+                    description={
+                      locale === "fr"
+                        ? "Ajoutez, retirez ou réorganisez les choix directement dans les listes, un choix par ligne."
+                        : "Add, remove, or reorder choices directly in each list, one choice per line."
+                    }
+                  />
+                  <div className="mt-6 divide-y divide-white/8">
+                    {PROJECT_TYPES.map((projectType) => {
+                      const option = definition.projectTypes[projectType];
+                      const enabledCount = PROJECT_TYPES.filter(
+                        (type) => definition.projectTypes[type].enabled,
+                      ).length;
+
+                      return (
+                        <div key={projectType} className="py-5 first:pt-0">
+                          <div className="flex items-end gap-4">
+                            <div className="min-w-0 flex-1">
                               <TextControl
                                 label={
-                                  locale === "fr"
-                                    ? "Avant la sélection du type"
-                                    : "Before a type is selected"
+                                  locale === "fr" ? "Type principal" : "Main type"
                                 }
-                                value={field.disabledPlaceholder ?? ""}
+                                value={option.label}
                                 onChange={(value) =>
                                   editDefinition((draft) => {
-                                    draft.fields.subcategory.disabledPlaceholder = value;
+                                    draft.projectTypes[projectType].label = value;
                                   })
                                 }
                               />
                             </div>
-                          ) : null}
+                            <SimpleCheckbox
+                              checked={option.enabled}
+                              disabled={option.enabled && enabledCount === 1}
+                              label={locale === "fr" ? "Afficher" : "Show"}
+                              onChange={(checked) =>
+                                editDefinition((draft) => {
+                                  draft.projectTypes[projectType].enabled = checked;
+                                })
+                              }
+                            />
+                          </div>
+                          <label className="mt-4 block text-xs font-medium text-white/48">
+                            {locale === "fr"
+                              ? "Sous-catégories"
+                              : "Sub-categories"}
+                            <textarea
+                              rows={Math.min(
+                                10,
+                                Math.max(
+                                  4,
+                                  definition.subcategoryOptions[projectType].length,
+                                ),
+                              )}
+                              value={optionsText(
+                                definition.subcategoryOptions[projectType],
+                              )}
+                              onChange={(event) => {
+                                const value = event.target.value;
+                                editDefinition((draft) => {
+                                  draft.subcategoryOptions[projectType] =
+                                    optionsFromText(
+                                      value,
+                                      draft.subcategoryOptions[projectType],
+                                      `${projectType}-subcategory`,
+                                    );
+                                });
+                              }}
+                              className="mt-2 w-full resize-y rounded-md border border-white/10 bg-[#0d100e] px-3 py-2.5 text-sm leading-6 text-white outline-none transition placeholder:text-white/25 focus:border-[#e4c58f]/70"
+                            />
+                          </label>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </EditorSection>
+                      );
+                    })}
 
-            <EditorSection
-              title={locale === "fr" ? "Choix" : "Choices"}
-              description={
-                locale === "fr"
-                  ? "Un choix par ligne. Réorganisez simplement les lignes."
-                  : "One choice per line. Reorder the lines to reorder choices."
-              }
-            >
-              <div className="space-y-5">
-                {PROJECT_TYPES.map((projectType) => {
-                  const option = definition.projectTypes[projectType];
-                  const enabledCount = PROJECT_TYPES.filter(
-                    (type) => definition.projectTypes[type].enabled,
-                  ).length;
+                    <label className="block pt-5 text-xs font-medium text-white/48">
+                      {formKind === "application"
+                        ? locale === "fr"
+                          ? "Disponibilités"
+                          : "Availability"
+                        : locale === "fr"
+                          ? "Tranches de budget"
+                          : "Budget ranges"}
+                      <textarea
+                        rows={Math.min(
+                          10,
+                          Math.max(4, definition.budgetOptions.length),
+                        )}
+                        value={optionsText(definition.budgetOptions)}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          editDefinition((draft) => {
+                            draft.budgetOptions = optionsFromText(
+                              value,
+                              draft.budgetOptions,
+                              "budget",
+                            );
+                          });
+                        }}
+                        className="mt-2 w-full resize-y rounded-md border border-white/10 bg-[#0d100e] px-3 py-2.5 text-sm leading-6 text-white outline-none transition focus:border-[#e4c58f]/70"
+                      />
+                    </label>
+                  </div>
+                </>
+              ) : null}
 
-                  return (
-                    <div key={projectType} className="rounded-lg border border-white/8 bg-white/[0.018] p-4">
-                      <div className="flex items-end gap-3">
-                        <div className="min-w-0 flex-1">
-                          <TextControl
-                            label={
-                              locale === "fr" ? "Type principal" : "Main type"
-                            }
-                            value={option.label}
-                            onChange={(value) =>
-                              editDefinition((draft) => {
-                                draft.projectTypes[projectType].label = value;
-                              })
-                            }
-                          />
-                        </div>
-                        <SimpleCheckbox
-                          checked={option.enabled}
-                          disabled={option.enabled && enabledCount === 1}
-                          label={locale === "fr" ? "Actif" : "Active"}
-                          onChange={(checked) =>
+              {activeSection === "messages" ? (
+                <>
+                  <SectionIntro
+                    title="Messages"
+                    description={
+                      locale === "fr"
+                        ? "Modifiez le bouton, la confirmation et les erreurs montrées aux visiteurs."
+                        : "Edit the button, confirmation, and errors shown to visitors."
+                    }
+                  />
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    {(Object.keys(definition.messages) as Array<
+                      keyof CmsFormDefinition["messages"]
+                    >).map((key) => (
+                      <div
+                        key={key}
+                        className={
+                          key === "success" ||
+                          key === "submissionError" ||
+                          key === "verificationUnavailable"
+                            ? "sm:col-span-2"
+                            : ""
+                        }
+                      >
+                        <TextControl
+                          multiline={
+                            key === "success" ||
+                            key === "submissionError" ||
+                            key === "verificationUnavailable"
+                          }
+                          label={messageNames[locale][key]}
+                          value={definition.messages[key]}
+                          onChange={(value) =>
                             editDefinition((draft) => {
-                              draft.projectTypes[projectType].enabled = checked;
+                              draft.messages[key] = value;
                             })
                           }
                         />
                       </div>
-                      <label className="mt-4 block text-xs font-medium text-white/48">
-                        {locale === "fr" ? "Sous-catégories" : "Sub-categories"}
-                        <textarea
-                          rows={Math.min(
-                            10,
-                            Math.max(4, definition.subcategoryOptions[projectType].length),
-                          )}
-                          value={optionsText(definition.subcategoryOptions[projectType])}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            editDefinition((draft) => {
-                              draft.subcategoryOptions[projectType] = optionsFromText(
-                                value,
-                                draft.subcategoryOptions[projectType],
-                                `${projectType}-subcategory`,
-                              );
-                            });
-                          }}
-                          className="mt-2 w-full resize-y rounded-md border border-white/10 bg-[#0d100e] px-3 py-2.5 text-sm leading-6 text-white outline-none transition placeholder:text-white/25 focus:border-[#e4c58f]/70"
-                        />
-                      </label>
-                    </div>
-                  );
-                })}
-
-                <label className="block text-xs font-medium text-white/48">
-                  {formKind === "application"
-                    ? locale === "fr"
-                      ? "Disponibilités"
-                      : "Availability"
-                    : locale === "fr"
-                      ? "Tranches de budget"
-                      : "Budget ranges"}
-                  <textarea
-                    rows={Math.min(10, Math.max(4, definition.budgetOptions.length))}
-                    value={optionsText(definition.budgetOptions)}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      editDefinition((draft) => {
-                        draft.budgetOptions = optionsFromText(
-                          value,
-                          draft.budgetOptions,
-                          "budget",
-                        );
-                      });
-                    }}
-                    className="mt-2 w-full resize-y rounded-md border border-white/10 bg-[#0d100e] px-3 py-2.5 text-sm leading-6 text-white outline-none transition focus:border-[#e4c58f]/70"
-                  />
-                </label>
-              </div>
-            </EditorSection>
-
-            <EditorSection
-              title={locale === "fr" ? "Messages" : "Messages"}
-              description={
-                locale === "fr"
-                  ? "Texte du bouton, confirmation et erreurs montrées aux visiteurs."
-                  : "Button, confirmation, and error text shown to visitors."
-              }
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                {(Object.keys(definition.messages) as Array<
-                  keyof CmsFormDefinition["messages"]
-                >).map((key) => (
-                  <div
-                    key={key}
-                    className={
-                      key === "success" ||
-                      key === "submissionError" ||
-                      key === "verificationUnavailable"
-                        ? "sm:col-span-2"
-                        : ""
-                    }
-                  >
-                    <TextControl
-                      multiline={
-                        key === "success" ||
-                        key === "submissionError" ||
-                        key === "verificationUnavailable"
-                      }
-                      label={messageNames[locale][key]}
-                      value={definition.messages[key]}
-                      onChange={(value) =>
-                        editDefinition((draft) => {
-                          draft.messages[key] = value;
-                        })
-                      }
-                    />
+                    ))}
                   </div>
-                ))}
-              </div>
-            </EditorSection>
-          </div>
+                </>
+              ) : null}
+            </div>
+          </section>
 
           <aside className="xl:sticky xl:top-24">
-            <div className="overflow-hidden rounded-xl border border-white/10 bg-[#111412] shadow-2xl shadow-black/20">
-              <div className="border-b border-white/10 px-5 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/38">
-                  {locale === "fr" ? "Aperçu" : "Preview"}
-                </p>
-                <h2 className="mt-1 font-semibold text-white">
-                  {formNames[locale][formKind]}
-                </h2>
+            <div className="overflow-hidden rounded-xl border border-white/10 bg-[#111412] shadow-xl shadow-black/10">
+              <div className="flex items-center justify-between gap-4 border-b border-white/10 px-5 py-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-white/38">
+                    {locale === "fr" ? "Aperçu" : "Preview"}
+                  </p>
+                  <h2 className="mt-1 font-semibold text-white">
+                    {formNames[locale][formKind]}
+                  </h2>
+                </div>
+                <span className="rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] font-semibold uppercase text-white/45">
+                  {locale}
+                </span>
               </div>
               <div className="bg-[#101211] p-5 sm:p-7">
                 <ContactForm
@@ -729,7 +759,9 @@ export default function AdminForms({
                   labels={previewLabels(definition)}
                   locale={locale}
                   preview
-                  submissionType={formKind === "application" ? "application" : "contact"}
+                  submissionType={
+                    formKind === "application" ? "application" : "contact"
+                  }
                 />
               </div>
             </div>
@@ -741,22 +773,24 @@ export default function AdminForms({
 }
 
 const FORM_KINDS_UI: FormKind[] = ["contact", "application"];
+const EDITOR_SECTIONS: EditorSectionId[] = [
+  "fields",
+  "choices",
+  "messages",
+];
 
-function EditorSection({
+function SectionIntro({
   title,
   description,
-  children,
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-white/10 bg-[#111412] p-5 sm:p-6">
+    <div>
       <h2 className="text-xl font-semibold">{title}</h2>
       <p className="mt-1 text-sm leading-6 text-white/45">{description}</p>
-      <div className="mt-6">{children}</div>
-    </section>
+    </div>
   );
 }
 
@@ -817,30 +851,5 @@ function SimpleCheckbox({
       />
       <span>{label}</span>
     </label>
-  );
-}
-
-function OrderButton({
-  label,
-  disabled,
-  onClick,
-  children,
-}: {
-  label: string;
-  disabled: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="grid h-8 w-8 place-items-center rounded-md border border-white/10 text-white/48 transition hover:bg-white/8 hover:text-white disabled:opacity-20 [&>svg]:h-3.5 [&>svg]:w-3.5"
-    >
-      {children}
-    </button>
   );
 }
