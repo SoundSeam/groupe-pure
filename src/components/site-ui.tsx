@@ -7,6 +7,7 @@ import { ImageWatermark } from "./image-watermark";
 import type { Locale } from "@/lib/i18n";
 import { getLocalizedPath } from "@/lib/i18n";
 import type { Dictionary, Project, Service } from "@/lib/dictionaries";
+import { serviceExamplesKey } from "@/lib/cms/services";
 import { fieldClass } from "./styles";
 
 export { fieldClass };
@@ -158,16 +159,20 @@ export function ServiceFeature({ service, reverse = false }: { service: Service;
         <p className="mt-5 text-lg font-light leading-8 text-white/70 sm:text-xl">
           {service.lead}
         </p>
-        <ul className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2">
+        <ul
+          className="mt-6 grid grid-cols-2 gap-x-6 gap-y-2"
+          data-cms-list-key={serviceExamplesKey(service.key)}
+        >
           {service.examples.map((example) => (
             <li
               key={example}
+              data-cms-list-item
               className="flex items-start gap-2 text-sm font-light leading-6 text-white/68"
             >
               <span aria-hidden="true" className="text-[#e4c58f]">
                 •
               </span>
-              <span>{example}</span>
+              <span data-cms-list-text>{example}</span>
             </li>
           ))}
         </ul>

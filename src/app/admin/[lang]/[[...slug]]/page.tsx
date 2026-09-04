@@ -20,13 +20,17 @@ export default async function AdminPageEditor({
   }
 
   const identity = await requireAdminIdentity(`/admin${pagePath}`);
-  const dictionary = route === "projects" ? await getDictionary(lang) : null;
+  const dictionary =
+    route === "projects" || route === "services"
+      ? await getDictionary(lang)
+      : null;
 
   return (
     <AdminEditor
       email={identity.email}
       initialPath={pagePath}
       initialProjects={dictionary?.projects}
+      initialServices={route === "services" ? dictionary?.services : undefined}
       locale={lang}
     />
   );

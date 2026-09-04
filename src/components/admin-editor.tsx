@@ -33,13 +33,25 @@ import {
 } from "@/lib/cms/projects";
 import {
   applyMediaValue,
+  applyTextListValue,
   collectMedia,
+  collectTextLists,
   collectTextNodes,
+  getTextListValue,
   getMediaValue,
   mediaKey,
   placeholderKey,
+  textListKey,
   textKey,
 } from "@/lib/cms/dom";
+import {
+  parseServiceExamples,
+  serviceExamplesKey,
+  serviceExamplesValue,
+  serviceKeyFromExamplesKey,
+  SERVICE_KEYS,
+  type ServiceKey,
+} from "@/lib/cms/services";
 import type {
   CmsContent,
   CmsPagePayload,
@@ -257,6 +269,16 @@ function decorateFrame(
     outline.style.width = `${rect.width}px`;
     outline.style.height = `${rect.height}px`;
   };
+
+  collectTextLists(document).forEach((element) => {
+    const key = textListKey(element);
+    if (!key) return;
+
+    const original = getTextListValue(element);
+    originals.set(key, original);
+    const override = content[key];
+    if (override) applyTextListValue(element, override);
+  });
 
   collectTextNodes(document).forEach((node) => {
     if (node.parentElement?.tagName === "OPTION") return;
@@ -525,17 +547,26 @@ type InitialProject = {
   summary: string;
 };
 
+type InitialService = {
+  key: ServiceKey;
+  title: string;
+  examples: string[];
+};
+
 const EMPTY_INITIAL_PROJECTS: InitialProject[] = [];
+const EMPTY_INITIAL_SERVICES: InitialService[] = [];
 
 export default function AdminEditor({
   email,
   initialPath,
   initialProjects = EMPTY_INITIAL_PROJECTS,
+  initialServices = EMPTY_INITIAL_SERVICES,
   locale,
 }: {
   email: string;
   initialPath: string;
   initialProjects?: InitialProject[];
+  initialServices?: InitialService[];
   locale: "en" | "fr";
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -570,6 +601,16 @@ export default function AdminEditor({
     useState<MediaSelection | null>(null);
   const [projects, setProjects] = useState<CmsProject[]>(() =>
     normalizeProjects(initialProjects),
+  );
+  const [serviceExamples, setServiceExamples] = useState<
+    Record<ServiceKey, string[]>
+  >(() =>
+    Object.fromEntries(
+      SERVICE_KEYS.map((key) => [
+        key,
+        initialServices.find((service) => service.key === key)?.examples ?? [],
+      ]),
+    ) as Record<ServiceKey, string[]>,
   );
   const [selectedProjectId, setSelectedProjectId] = useState(
     () => normalizeProjects(initialProjects)[0]?.id ?? "",
@@ -661,6 +702,19 @@ export default function AdminEditor({
         previewProjects(parseProjects(visibleValue, initialProjects));
         return;
       }
+      const serviceKey = serviceKeyFromExamplesKey(key);
+      if (serviceKey) {
+        const fallback =
+          initialServices.find((service) => service.key === serviceKey)
+            ?.examples ?? [];
+        const examples = parseServiceExamples(visibleValue, fallback);
+        setServiceExamples((current) => ({ ...current, [serviceKey]: examples }));
+        const list = collectTextLists(document).find(
+          (element) => textListKey(element) === key,
+        );
+        if (list && visibleValue) applyTextListValue(list, visibleValue);
+        return;
+      }
       if (!element || !visibleValue) return;
 
       if (element.dataset.cmsEditable === "text") {
@@ -704,7 +758,7 @@ export default function AdminEditor({
         }
       }
     },
-    [initialProjects, previewProjects, selectMedia],
+    [initialProjects, initialServices, previewProjects, selectMedia],
   );
 
   const pushHistory = useCallback(
@@ -738,6 +792,21 @@ export default function AdminEditor({
       setMessage("");
     },
     [previewProjects, pushHistory, setDraftContent, setMessage],
+  );
+
+  const writeServiceExamples = useCallback(
+    (serviceKey: ServiceKey, examples: string[], recordHistory = true) => {
+      const key = serviceExamplesKey(serviceKey);
+      const before = contentRef.current[key];
+      const after = serviceExamplesValue(examples);
+      setDraftContent({ ...contentRef.current, [key]: after });
+      setServiceExamples((current) => ({ ...current, [serviceKey]: examples }));
+      applyEditorValue(key, after);
+      if (recordHistory) pushHistory({ key, before, after });
+      setActivity("idle");
+      setMessage("");
+    },
+    [applyEditorValue, pushHistory, setDraftContent, setMessage],
   );
 
   const applyHistoryPatch = useCallback(
@@ -831,6 +900,22 @@ export default function AdminEditor({
           nextContent[PROJECTS_CONTENT_KEY],
           initialProjects,
         );
+        setServiceExamples(
+          Object.fromEntries(
+            SERVICE_KEYS.map((key) => {
+              const fallback =
+                initialServices.find((service) => service.key === key)
+                  ?.examples ?? [];
+              return [
+                key,
+                parseServiceExamples(
+                  nextContent[serviceExamplesKey(key)],
+                  fallback,
+                ),
+              ];
+            }),
+          ) as Record<ServiceKey, string[]>,
+        );
         setProjects(nextProjects);
         setSelectedProjectId((current) =>
           nextProjects.some((project) => project.id === current)
@@ -858,7 +943,7 @@ export default function AdminEditor({
       controller.abort();
       if (frameUpdate) window.cancelAnimationFrame(frameUpdate);
     };
-  }, [applyEditorValue, initialPath, initialProjects, locale]);
+  }, [applyEditorValue, initialPath, initialProjects, initialServices, locale]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -895,6 +980,7 @@ export default function AdminEditor({
 
   const handleEditEnd = useCallback(
     (key: string) => {
+      if (!editStartRef.current.has(key)) return;
       const before = editStartRef.current.get(key);
       const after = contentRef.current[key];
       editStartRef.current.delete(key);
@@ -1134,6 +1220,41 @@ export default function AdminEditor({
     } else {
       selectMedia(null);
     }
+  }
+
+  function updateSelectedMediaAlt(alt: string) {
+    if (!selectedMedia || selectedMedia.type !== "image") return;
+    const before =
+      contentRef.current[selectedMedia.key] ??
+      originalsRef.current.get(selectedMedia.key);
+    if (!before || before.type !== "image") return;
+    const next = { ...before, alt } satisfies CmsValue;
+    setDraftContent({ ...contentRef.current, [selectedMedia.key]: next });
+    applyEditorValue(selectedMedia.key, next);
+    setActivity("idle");
+    setMessage("");
+  }
+
+  function addServiceExample(serviceKey: ServiceKey, afterIndex?: number) {
+    const examples = serviceExamples[serviceKey];
+    const insertAt = afterIndex === undefined ? examples.length : afterIndex + 1;
+    const next = [...examples];
+    next.splice(insertAt, 0, "");
+    writeServiceExamples(serviceKey, next);
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLInputElement>(
+          `[data-service-example="${serviceKey}:${insertAt}"]`,
+        )
+        ?.focus();
+    });
+  }
+
+  function removeServiceExample(serviceKey: ServiceKey, index: number) {
+    writeServiceExamples(
+      serviceKey,
+      serviceExamples[serviceKey].filter((_, itemIndex) => itemIndex !== index),
+    );
   }
 
   function updateSelectedMediaDimensions(width: number, height: number) {
@@ -1823,6 +1944,20 @@ export default function AdminEditor({
                 </div>
               </dl>
 
+              {selectedMediaValue.type === "image" ? (
+                <label className="mt-4 block text-xs font-medium text-white/55">
+                  {locale === "fr" ? "Texte alternatif" : "Alternative text"}
+                  <input
+                    value={selectedMediaValue.alt ?? ""}
+                    disabled={busy}
+                    onFocus={() => handleEditStart(selectedMedia.key)}
+                    onChange={(event) => updateSelectedMediaAlt(event.target.value)}
+                    onBlur={() => handleEditEnd(selectedMedia.key)}
+                    className="mt-2 h-9 w-full rounded-sm border border-white/12 bg-white/[0.035] px-3 text-sm text-white outline-none focus:border-[#6f8dff] disabled:opacity-40"
+                  />
+                </label>
+              ) : null}
+
               <button
                 type="button"
                 disabled={busy}
@@ -1836,6 +1971,102 @@ export default function AdminEditor({
               >
                 {locale === "fr" ? "Remplacer" : "Replace"}
               </button>
+            </div>
+          </aside>
+        ) : initialPath.endsWith("/services") ? (
+          <aside className="flex w-80 shrink-0 flex-col border-r border-white/10 bg-[#111412] text-white">
+            <div className="flex h-12 shrink-0 items-center border-b border-white/10 px-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-white/50">
+                {locale === "fr" ? "Points de service" : "Service bullets"}
+              </h2>
+            </div>
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-3">
+              {SERVICE_KEYS.map((serviceKey) => {
+                const service = initialServices.find(
+                  (item) => item.key === serviceKey,
+                );
+                return (
+                  <section key={serviceKey}>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <h3 className="text-xs font-semibold text-white/75">
+                        {service?.title ?? serviceKey}
+                      </h3>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        aria-label={
+                          locale === "fr"
+                            ? `Ajouter un point — ${service?.title ?? serviceKey}`
+                            : `Add bullet — ${service?.title ?? serviceKey}`
+                        }
+                        data-tooltip={locale === "fr" ? "Ajouter" : "Add"}
+                        data-tooltip-align="end"
+                        onClick={() => addServiceExample(serviceKey)}
+                        className="admin-tooltip grid h-7 w-7 place-items-center rounded-sm border border-white/15 text-white/70 transition hover:bg-white/8 hover:text-white disabled:opacity-30"
+                      >
+                        <Plus className="h-3.5 w-3.5" weight="bold" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {serviceExamples[serviceKey].map((example, index) => {
+                        const collectionKey = serviceExamplesKey(serviceKey);
+                        return (
+                          <div key={`${serviceKey}:${index}`} className="flex items-center gap-1.5">
+                            <input
+                              value={example}
+                              disabled={busy}
+                              data-service-example={`${serviceKey}:${index}`}
+                              aria-label={`${service?.title ?? serviceKey} — ${locale === "fr" ? "point" : "bullet"} ${index + 1}`}
+                              onFocus={() => handleEditStart(collectionKey)}
+                              onChange={(event) => {
+                                const next = [...serviceExamples[serviceKey]];
+                                next[index] = event.target.value;
+                                writeServiceExamples(serviceKey, next, false);
+                              }}
+                              onBlur={() => handleEditEnd(collectionKey)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  handleEditEnd(collectionKey);
+                                  addServiceExample(serviceKey, index);
+                                } else if (
+                                  event.key === "Backspace" &&
+                                  !example &&
+                                  serviceExamples[serviceKey].length > 1
+                                ) {
+                                  event.preventDefault();
+                                  removeServiceExample(serviceKey, index);
+                                }
+                              }}
+                              placeholder={locale === "fr" ? "Nouveau point" : "New bullet"}
+                              className="h-9 min-w-0 flex-1 rounded-sm border border-white/12 bg-white/[0.035] px-2.5 text-sm text-white outline-none placeholder:text-white/28 focus:border-[#6f8dff] disabled:opacity-40"
+                            />
+                            <button
+                              type="button"
+                              disabled={busy}
+                              aria-label={locale === "fr" ? "Supprimer le point" : "Remove bullet"}
+                              onClick={() => removeServiceExample(serviceKey, index)}
+                              className="grid h-9 w-8 shrink-0 place-items-center rounded-sm text-white/38 transition hover:bg-red-400/10 hover:text-red-200 disabled:opacity-30"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {!serviceExamples[serviceKey].length ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => addServiceExample(serviceKey)}
+                        className="w-full rounded-sm border border-dashed border-white/15 px-3 py-3 text-xs text-white/45 transition hover:border-white/30 hover:text-white/70 disabled:opacity-30"
+                      >
+                        {locale === "fr" ? "Ajouter le premier point" : "Add the first bullet"}
+                      </button>
+                    ) : null}
+                  </section>
+                );
+              })}
             </div>
           </aside>
         ) : initialPath.endsWith("/projects") ? (

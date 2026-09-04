@@ -16,8 +16,64 @@ function isIgnored(element: Element | null) {
     !element ||
     ignoredTags.has(element.tagName) ||
     Boolean(element.closest("form, header")) ||
+    Boolean(element.closest("[data-cms-list-key]")) ||
     (Boolean(element.closest("footer")) && !editableRegion) ||
     Boolean(element.closest("[data-cms-ignore]"))
+  );
+}
+
+const textListTemplates = new WeakMap<HTMLElement, HTMLElement>();
+
+export function collectTextLists(document: Document) {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>("[data-cms-list-key]"),
+  );
+}
+
+export function textListKey(element: HTMLElement) {
+  return element.dataset.cmsListKey ?? "";
+}
+
+export function getTextListValue(element: HTMLElement): CmsValue {
+  const values = Array.from(
+    element.querySelectorAll<HTMLElement>("[data-cms-list-item]"),
+  ).map(
+    (item) =>
+      item.querySelector<HTMLElement>("[data-cms-list-text]")?.textContent ??
+      "",
+  );
+
+  return { type: "collection", value: JSON.stringify(values) };
+}
+
+export function applyTextListValue(element: HTMLElement, value: CmsValue) {
+  if (value.type !== "collection") return;
+
+  let values: string[];
+  try {
+    const parsed = JSON.parse(value.value) as unknown;
+    if (!Array.isArray(parsed)) return;
+    values = parsed.filter((entry): entry is string => typeof entry === "string");
+  } catch {
+    return;
+  }
+
+  const existingTemplate = element.querySelector<HTMLElement>(
+    "[data-cms-list-item]",
+  );
+  if (existingTemplate && !textListTemplates.has(element)) {
+    textListTemplates.set(element, existingTemplate.cloneNode(true) as HTMLElement);
+  }
+  const template = textListTemplates.get(element);
+  if (!template) return;
+
+  element.replaceChildren(
+    ...values.map((text) => {
+      const item = template.cloneNode(true) as HTMLElement;
+      const target = item.querySelector<HTMLElement>("[data-cms-list-text]");
+      if (target) target.textContent = text;
+      return item;
+    }),
   );
 }
 
@@ -245,6 +301,11 @@ export function applyContentToDocument(document: Document, content: CmsContent) 
     const key = mediaKey(element);
     const value = content[key];
     if (value) applyMediaValue(element, value);
+  });
+
+  collectTextLists(document).forEach((element) => {
+    const value = content[textListKey(element)];
+    if (value) applyTextListValue(element, value);
   });
 
   (document.querySelector("main") ?? document.body)
