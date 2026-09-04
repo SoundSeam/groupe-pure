@@ -7,10 +7,20 @@ import {
   SectionShell,
 } from "@/components/site-ui";
 import { ProjectsContent } from "@/components/projects-content";
+import {
+  getPageContentForRender,
+  getSharedContentForRender,
+} from "@/lib/cms/content.server";
+import { cmsText } from "@/lib/cms/content-values";
+import { PAGE_HERO_CMS_KEYS } from "@/lib/cms/page-keys";
+import { parseProjects, PROJECTS_CONTENT_KEY } from "@/lib/cms/projects";
 import { getDictionary } from "@/lib/dictionaries";
 import { getAlternates, hasLocale } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
-import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
+import {
+  getRequestSiteVisibility,
+  isCmsEditorPreviewRequest,
+} from "@/lib/cms/page-visibility.server";
 
 export async function generateMetadata({
   params,
@@ -38,14 +48,23 @@ export default async function ProjectsPage({
 }: {
   params: Promise<{ lang: string }>;
 }) {
-  const { lang } = await params;
+  const [{ lang }, editorPreview] = await Promise.all([
+    params,
+    isCmsEditorPreviewRequest(),
+  ]);
 
   if (!hasLocale(lang)) notFound();
 
-  const [dict, visibility] = await Promise.all([
+  const [dict, visibility, cmsContent, sharedCmsContent] = await Promise.all([
     getDictionary(lang),
     getRequestSiteVisibility(),
+    getPageContentForRender(`/${lang}/projects`, editorPreview),
+    getSharedContentForRender(lang, editorPreview),
   ]);
+  const projects = parseProjects(
+    cmsContent[PROJECTS_CONTENT_KEY],
+    dict.projects,
+  );
   const carouselLabels =
     lang === "fr"
       ? {
@@ -61,15 +80,28 @@ export default async function ProjectsPage({
   return (
     <main>
       <PageHero
-        eyebrow={dict.projectsPage.eyebrow}
-        title={dict.projectsPage.title}
-        lead={dict.projectsPage.lead}
+        eyebrow={cmsText(
+          cmsContent,
+          PAGE_HERO_CMS_KEYS.eyebrow,
+          dict.projectsPage.eyebrow,
+        )}
+        title={cmsText(
+          cmsContent,
+          PAGE_HERO_CMS_KEYS.title,
+          dict.projectsPage.title,
+        )}
+        lead={cmsText(
+          cmsContent,
+          PAGE_HERO_CMS_KEYS.lead,
+          dict.projectsPage.lead,
+        )}
+        cmsTextKeys={PAGE_HERO_CMS_KEYS}
       />
       <SectionShell className="pt-0">
         <ProjectsContent
           pagePath={`/${lang}/projects`}
           sectionTitles={dict.services.map((service) => service.title)}
-          fallbackProjects={dict.projects}
+          fallbackProjects={projects}
           previousLabel={carouselLabels.previous}
           nextLabel={carouselLabels.next}
           imageLabel={carouselLabels.image}
@@ -81,6 +113,7 @@ export default async function ProjectsPage({
         lead={dict.servicesPage.ctaLead}
         buttonLabel={dict.common.startProject}
         contactVisible={visibility[lang].includes("/contact")}
+        cmsContent={sharedCmsContent}
       />
     </main>
   );

@@ -15,6 +15,7 @@ import {
 } from "@/lib/cms/pages";
 
 export const SITE_VISIBILITY_HEADER = "x-groupe-pure-page-visibility";
+export const CMS_EDITOR_PREVIEW_HEADER = "x-groupe-pure-cms-editor-preview";
 
 export async function loadSiteVisibility(): Promise<SiteVisibility> {
   const visibility = legacyPageVisibility();
@@ -64,4 +65,9 @@ export async function loadSiteVisibility(): Promise<SiteVisibility> {
 export async function getRequestSiteVisibility() {
   const requestHeaders = await headers();
   return parseSiteVisibility(requestHeaders.get(SITE_VISIBILITY_HEADER));
+}
+
+export async function isCmsEditorPreviewRequest() {
+  const requestHeaders = await headers();
+  return requestHeaders.get(CMS_EDITOR_PREVIEW_HEADER) === "1";
 }

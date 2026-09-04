@@ -18,14 +18,17 @@ import {
   partnerLogos,
 } from "@/lib/site-data";
 import type { Locale } from "@/lib/i18n";
-import { getPublishedPageContent } from "@/lib/cms/content.server";
+import { getPageContentForRender } from "@/lib/cms/content.server";
 import { cmsMedia, cmsText } from "@/lib/cms/content-values";
 import {
   HOME_CMS_KEYS,
   homeOpeningHoursCmsKeys,
   homeServiceCmsKeys,
 } from "@/lib/cms/home";
-import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
+import {
+  getRequestSiteVisibility,
+  isCmsEditorPreviewRequest,
+} from "@/lib/cms/page-visibility.server";
 
 export async function generateMetadata({
   params,
@@ -57,7 +60,10 @@ export default async function Home({
 }: {
   params: Promise<{ lang: string }>;
 }) {
-  const { lang } = await params;
+  const [{ lang }, editorPreview] = await Promise.all([
+    params,
+    isCmsEditorPreviewRequest(),
+  ]);
 
   if (!hasLocale(lang)) {
     notFound();
@@ -66,7 +72,7 @@ export default async function Home({
   const [dict, visibility, cmsContent] = await Promise.all([
     getDictionary(lang),
     getRequestSiteVisibility(),
-    getPublishedPageContent(`/${lang}`),
+    getPageContentForRender(`/${lang}`, editorPreview),
   ]);
   const locale = lang as Locale;
   const contactVisible = visibility[locale].includes("/contact");

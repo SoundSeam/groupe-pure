@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import {
+  CMS_EDITOR_PREVIEW_HEADER,
   SITE_VISIBILITY_HEADER,
   loadSiteVisibility,
 } from "@/lib/cms/page-visibility.server";
@@ -124,6 +125,7 @@ async function refreshAdminSession(
       SITE_VISIBILITY_HEADER,
       serializeSiteVisibility(adminPreviewVisibility),
     );
+    requestHeaders.set(CMS_EDITOR_PREVIEW_HEADER, "1");
     const rewrite = NextResponse.rewrite(previewUrl, {
       request: { headers: requestHeaders },
     });

@@ -8,6 +8,7 @@ import type { Locale } from "@/lib/i18n";
 import { getLocalizedPath } from "@/lib/i18n";
 import type { Dictionary, Project, Service } from "@/lib/dictionaries";
 import { cmsImage, cmsText } from "@/lib/cms/content-values";
+import { SHARED_CTA_CMS_KEYS } from "@/lib/cms/page-keys";
 import { serviceExamplesKey } from "@/lib/cms/services";
 import type { CmsContent } from "@/lib/cms/types";
 import { fieldClass } from "./styles";
@@ -44,11 +45,13 @@ export function PageHero({
   title,
   lead,
   cmsScope,
+  cmsTextKeys,
 }: {
   eyebrow: string;
   title: string;
   lead: string;
   cmsScope?: string;
+  cmsTextKeys?: { eyebrow: string; title: string; lead: string };
 }) {
   return (
     <section
@@ -56,11 +59,22 @@ export function PageHero({
       data-cms-scope={cmsScope}
     >
       <div className="mx-auto w-full max-w-7xl px-6 sm:px-10">
-        <p className="text-sm font-medium text-white/60">{eyebrow}</p>
-        <h1 className="mt-4 max-w-5xl text-4xl font-semibold text-white sm:text-6xl">
+        <p
+          className="text-sm font-medium text-white/60"
+          data-cms-text-key={cmsTextKeys?.eyebrow}
+        >
+          {eyebrow}
+        </p>
+        <h1
+          className="mt-4 max-w-5xl text-4xl font-semibold text-white sm:text-6xl"
+          data-cms-text-key={cmsTextKeys?.title}
+        >
           {title}
         </h1>
-        <p className="mt-6 max-w-3xl text-lg font-light leading-8 text-white/70 sm:text-xl">
+        <p
+          className="mt-6 max-w-3xl text-lg font-light leading-8 text-white/70 sm:text-xl"
+          data-cms-text-key={cmsTextKeys?.lead}
+        >
           {lead}
         </p>
       </div>
@@ -160,18 +174,31 @@ export function ServiceFeature({ service, reverse = false }: { service: Service;
       }`}
     >
       <div className="relative aspect-video overflow-hidden rounded-xl bg-[#171a18]">
-        <Image
-          src={service.image}
-          alt={service.imageAlt}
-          fill
-          sizes="(min-width: 1024px) 45vw, 100vw"
-          data-cms-media-key={`media:services:${service.key}`}
-          className={`object-cover ${
-            service.key === "construction" || service.key === "excavation"
-              ? "object-[center_40%]"
-              : ""
-          }`}
-        />
+        {service.video ? (
+          <video
+            src={service.video}
+            data-cms-media-key={`media:services:${service.key}`}
+            className="h-full w-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+            aria-hidden="true"
+          />
+        ) : (
+          <Image
+            src={service.image}
+            alt={service.imageAlt}
+            fill
+            sizes="(min-width: 1024px) 45vw, 100vw"
+            data-cms-media-key={`media:services:${service.key}`}
+            className={`object-cover ${
+              service.key === "construction" || service.key === "excavation"
+                ? "object-[center_40%]"
+                : ""
+            }`}
+          />
+        )}
         <div className="pointer-events-none absolute inset-0 bg-black/20" />
         <ImageWatermark />
       </div>
@@ -408,13 +435,23 @@ export function CtaBand({
   lead,
   buttonLabel,
   contactVisible = true,
+  cmsContent = {},
 }: {
   lang: Locale;
   title: string;
   lead: string;
   buttonLabel: string;
   contactVisible?: boolean;
+  cmsContent?: CmsContent;
 }) {
+  const cmsTitle = cmsText(cmsContent, SHARED_CTA_CMS_KEYS.title, title);
+  const cmsLead = cmsText(cmsContent, SHARED_CTA_CMS_KEYS.lead, lead);
+  const cmsButtonLabel = cmsText(
+    cmsContent,
+    SHARED_CTA_CMS_KEYS.button,
+    buttonLabel,
+  );
+
   return (
     <SectionShell panel>
       <div
@@ -422,16 +459,25 @@ export function CtaBand({
         data-cms-scope="shared:cta"
       >
         <div>
-          <h2 className="text-3xl font-semibold text-white sm:text-5xl">
-            {title}
+          <h2
+            className="text-3xl font-semibold text-white sm:text-5xl"
+            data-cms-text-key={SHARED_CTA_CMS_KEYS.title}
+          >
+            {cmsTitle}
           </h2>
-          <p className="mt-5 max-w-3xl text-lg font-light leading-8 text-white/70 sm:text-xl">
-            {lead}
+          <p
+            className="mt-5 max-w-3xl text-lg font-light leading-8 text-white/70 sm:text-xl"
+            data-cms-text-key={SHARED_CTA_CMS_KEYS.lead}
+          >
+            {cmsLead}
           </p>
         </div>
         {contactVisible ? (
-          <PrimaryButton href={getLocalizedPath(lang, "/contact")}>
-            {buttonLabel}
+          <PrimaryButton
+            href={getLocalizedPath(lang, "/contact")}
+            cmsTextKey={SHARED_CTA_CMS_KEYS.button}
+          >
+            {cmsButtonLabel}
           </PrimaryButton>
         ) : null}
       </div>
