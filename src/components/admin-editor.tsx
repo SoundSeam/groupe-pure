@@ -46,6 +46,7 @@ import {
 } from "@/lib/cms/dom";
 import {
   parseServiceExamples,
+  materializeServicePageContent,
   serviceExamplesKey,
   serviceExamplesValue,
   serviceKeyFromExamplesKey,
@@ -572,6 +573,7 @@ export default function AdminEditor({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const mediaFileInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<CmsContent>({});
+  const loadedRef = useRef(false);
   const revisionRef = useRef(0);
   const sharedRevisionRef = useRef(0);
   const originalsRef = useRef(new Map<string, CmsValue>());
@@ -682,6 +684,21 @@ export default function AdminEditor({
     contentRef.current = next;
     setContent(next);
   }, []);
+
+  const materializeServicesContent = useCallback(() => {
+    if (!loadedRef.current || !initialPath.endsWith("/services")) return;
+    if (!originalsRef.current.size) return;
+
+    const next = materializeServicePageContent(
+      originalsRef.current,
+      contentRef.current,
+    );
+    if (JSON.stringify(next) !== JSON.stringify(contentRef.current)) {
+      setDraftContent(next);
+      setActivity("idle");
+      setMessage("");
+    }
+  }, [initialPath, setDraftContent, setMessage]);
 
   const previewProjects = useCallback((next: CmsProject[]) => {
     setProjects(next);
@@ -922,6 +939,7 @@ export default function AdminEditor({
             ? current
             : (nextProjects[0]?.id ?? ""),
         );
+        loadedRef.current = true;
         setLoaded(true);
         setActivity("idle");
 
@@ -929,6 +947,7 @@ export default function AdminEditor({
           Object.entries(nextContent).forEach(([key, value]) => {
             applyEditorValue(key, value);
           });
+          materializeServicesContent();
         });
       })
       .catch((error: Error) => {
@@ -940,10 +959,18 @@ export default function AdminEditor({
 
     return () => {
       active = false;
+      loadedRef.current = false;
       controller.abort();
       if (frameUpdate) window.cancelAnimationFrame(frameUpdate);
     };
-  }, [applyEditorValue, initialPath, initialProjects, initialServices, locale]);
+  }, [
+    applyEditorValue,
+    initialPath,
+    initialProjects,
+    initialServices,
+    locale,
+    materializeServicesContent,
+  ]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -993,36 +1020,40 @@ export default function AdminEditor({
     const frame = iframeRef.current;
     if (!frame) return;
     const frameDocument = frame.contentDocument;
-    if (
-      !frameDocument?.body ||
-      frameDocument.querySelector("[data-cms-editor-style]")
-    ) {
-      return;
+    if (!frameDocument?.body) return;
+
+    if (!frameDocument.querySelector("[data-cms-editor-style]")) {
+      selectMedia(null);
+      originalsRef.current = new Map();
+      decorateFrame(frame, contentRef.current, originalsRef.current, {
+        onInput: updateFromFrame,
+        onEditStart: handleEditStart,
+        onEditEnd: handleEditEnd,
+        onMediaSelect: selectMedia,
+        onUndo: undo,
+        onRedo: redo,
+      });
+      frame.contentWindow?.postMessage(
+        { type: "cms-projects-preview", projects },
+        window.location.origin,
+      );
     }
 
-    selectMedia(null);
-    originalsRef.current = new Map();
-    decorateFrame(frame, contentRef.current, originalsRef.current, {
-      onInput: updateFromFrame,
-      onEditStart: handleEditStart,
-      onEditEnd: handleEditEnd,
-      onMediaSelect: selectMedia,
-      onUndo: undo,
-      onRedo: redo,
-    });
-    frame.contentWindow?.postMessage(
-      { type: "cms-projects-preview", projects },
-      window.location.origin,
-    );
+    materializeServicesContent();
   }, [
     handleEditEnd,
     handleEditStart,
+    materializeServicesContent,
     projects,
     redo,
     selectMedia,
     undo,
     updateFromFrame,
   ]);
+
+  useEffect(() => {
+    if (loaded) decorateCurrentFrame();
+  }, [decorateCurrentFrame, loaded]);
 
   useEffect(() => {
     const handlePreviewMessage = (event: MessageEvent) => {

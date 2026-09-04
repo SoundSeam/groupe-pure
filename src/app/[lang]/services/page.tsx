@@ -53,6 +53,7 @@ export default async function ServicesPage({
         eyebrow={dict.servicesPage.eyebrow}
         title={dict.servicesPage.title}
         lead={dict.servicesPage.lead}
+        cmsScope="services:hero"
       />
       <SectionShell className="pt-0">
         <div className="space-y-28 sm:space-y-40">

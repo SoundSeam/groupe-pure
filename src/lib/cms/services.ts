@@ -1,4 +1,4 @@
-import type { CmsValue } from "./types";
+import type { CmsContent, CmsValue } from "./types";
 
 export const SERVICE_KEYS = [
   "architecture",
@@ -37,4 +37,14 @@ export function serviceExamplesValue(examples: string[]): CmsValue {
     type: "collection",
     value: JSON.stringify(examples),
   };
+}
+
+export function materializeServicePageContent(
+  originals: ReadonlyMap<string, CmsValue>,
+  current: CmsContent,
+) {
+  return {
+    ...Object.fromEntries(originals),
+    ...current,
+  } satisfies CmsContent;
 }

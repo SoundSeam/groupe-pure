@@ -41,13 +41,18 @@ export function PageHero({
   eyebrow,
   title,
   lead,
+  cmsScope,
 }: {
   eyebrow: string;
   title: string;
   lead: string;
+  cmsScope?: string;
 }) {
   return (
-    <section className="bg-[#101211] pt-20 pb-7 sm:pt-28 sm:pb-10">
+    <section
+      className="bg-[#101211] pt-20 pb-7 sm:pt-28 sm:pb-10"
+      data-cms-scope={cmsScope}
+    >
       <div className="mx-auto w-full max-w-7xl px-6 sm:px-10">
         <p className="text-sm font-medium text-white/60">{eyebrow}</p>
         <h1 className="mt-4 max-w-5xl text-4xl font-semibold text-white sm:text-6xl">
@@ -132,6 +137,7 @@ export function ServiceCard({ service }: { service: Service }) {
 export function ServiceFeature({ service, reverse = false }: { service: Service; reverse?: boolean }) {
   return (
     <article
+      data-cms-scope={`services:${service.key}`}
       className={`grid gap-16 lg:grid-cols-2 lg:items-start ${
         reverse ? "lg:[&>div:first-child]:order-2" : ""
       }`}

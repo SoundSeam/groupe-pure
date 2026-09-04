@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseServiceExamples,
+  materializeServicePageContent,
   serviceExamplesKey,
   serviceExamplesValue,
 } from "./services";
@@ -25,5 +26,23 @@ describe("service example collections", () => {
         ["Fallback"],
       ),
     ).toEqual(["Fallback"]);
+  });
+
+  it("materializes every page field without overwriting saved edits", () => {
+    const defaults = new Map([
+      ["services:hero:title", { type: "text", value: "Default title" } as const],
+      ["media:services:architecture", { type: "image", value: "/default.webp" } as const],
+    ]);
+    const saved = {
+      "services:hero:title": { type: "text", value: "Saved title" } as const,
+    };
+
+    expect(materializeServicePageContent(defaults, saved)).toEqual({
+      "services:hero:title": { type: "text", value: "Saved title" },
+      "media:services:architecture": {
+        type: "image",
+        value: "/default.webp",
+      },
+    });
   });
 });
