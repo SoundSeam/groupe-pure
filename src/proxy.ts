@@ -121,6 +121,7 @@ async function refreshAdminSession(
     const previewUrl = request.nextUrl.clone();
     previewUrl.pathname = previewPath;
     const requestHeaders = new Headers(request.headers);
+    requestHeaders.delete(CMS_EDITOR_PREVIEW_HEADER);
     requestHeaders.set(
       SITE_VISIBILITY_HEADER,
       serializeSiteVisibility(adminPreviewVisibility),
@@ -163,6 +164,7 @@ export async function proxy(request: NextRequest) {
     }
 
     const requestHeaders = new Headers(request.headers);
+    requestHeaders.delete(CMS_EDITOR_PREVIEW_HEADER);
     requestHeaders.set(
       SITE_VISIBILITY_HEADER,
       serializeSiteVisibility(visibility),

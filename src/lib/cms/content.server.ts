@@ -2,7 +2,6 @@ import "server-only";
 
 import { cache } from "react";
 
-import { getAdminIdentity } from "@/lib/auth";
 import { isDatabaseConfigured } from "@/lib/env";
 import { getPrisma } from "@/lib/prisma";
 
@@ -29,7 +28,6 @@ const readDraftContent = cache(async (path: string): Promise<CmsContent> => {
 
   return isCmsContent(page?.draftContent) ? page.draftContent : {};
 });
-const readAdminIdentity = cache(getAdminIdentity);
 
 export function getPublishedPageContent(path: string) {
   return readPublishedContent(path);
@@ -39,7 +37,7 @@ export async function getPageContentForRender(
   path: string,
   editorPreview: boolean,
 ) {
-  if (!editorPreview || !(await readAdminIdentity())) {
+  if (!editorPreview) {
     return readPublishedContent(path);
   }
 
