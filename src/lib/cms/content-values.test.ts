@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { cmsImage, cmsMedia, cmsText } from "./content-values";
+import {
+  cmsImage,
+  cmsMedia,
+  cmsText,
+  recoverLocalCmsDraft,
+  splitCmsContent,
+} from "./content-values";
 
 describe("CMS render values", () => {
   it("uses a published text override when present", () => {
@@ -23,5 +29,36 @@ describe("CMS render values", () => {
     } as const;
     expect(cmsMedia(content, "image")).toEqual(content.image);
     expect(cmsMedia(content, "video")).toEqual(content.video);
+  });
+
+  it("separates page content from locale-wide content", () => {
+    expect(
+      splitCmsContent({
+        heading: { type: "text", value: "Page" },
+        "shared:footer": { type: "text", value: "Footer" },
+      }),
+    ).toEqual({
+      pageContent: { heading: { type: "text", value: "Page" } },
+      sharedContent: {
+        "shared:footer": { type: "text", value: "Footer" },
+      },
+    });
+  });
+
+  it("recovers page edits even when shared content changed elsewhere", () => {
+    const server = {
+      heading: { type: "text", value: "Server page" },
+      "shared:footer": { type: "text", value: "New footer" },
+    } as const;
+    const local = {
+      heading: { type: "text", value: "Unsaved page edit" },
+      "shared:footer": { type: "text", value: "Old footer" },
+    } as const;
+
+    expect(recoverLocalCmsDraft(server, local, true, false)).toEqual({
+      heading: { type: "text", value: "Unsaved page edit" },
+      "shared:footer": { type: "text", value: "New footer" },
+    });
+    expect(recoverLocalCmsDraft(server, local, false, true)).toEqual(server);
   });
 });

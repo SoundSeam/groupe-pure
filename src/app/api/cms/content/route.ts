@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { getAdminIdentity } from "@/lib/auth";
 import { reconcilePageAssets } from "@/lib/cms/assets";
-import type { CmsContent, CmsPagePayload } from "@/lib/cms/types";
+import { splitCmsContent } from "@/lib/cms/content-values";
+import type { CmsPagePayload } from "@/lib/cms/types";
 import { isCmsContent } from "@/lib/cms/types";
 import { isDatabaseConfigured } from "@/lib/env";
 import { getPrisma } from "@/lib/prisma";
@@ -29,17 +30,6 @@ function sharedPathFor(path: string) {
   // Keep the existing storage path for compatibility. It now contains every
   // locale-wide `shared:*` scope, including the CTA and footer.
   return `/_shared/${locale}/cta`;
-}
-
-function splitContent(content: CmsContent) {
-  const pageContent: CmsContent = {};
-  const sharedContent: CmsContent = {};
-
-  Object.entries(content).forEach(([key, value]) => {
-    (key.startsWith("shared:") ? sharedContent : pageContent)[key] = value;
-  });
-
-  return { pageContent, sharedContent };
 }
 
 function emptyPayload(): CmsPagePayload {
@@ -121,6 +111,7 @@ export async function POST(request: Request) {
     content?: unknown;
     baseRevision?: unknown;
     baseSharedRevision?: unknown;
+    saveShared?: unknown;
   } | null;
   const path = normalizePagePath(body?.path);
 
@@ -133,7 +124,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid draft." }, { status: 400 });
   }
 
-  const { pageContent, sharedContent } = splitContent(body.content);
+  const { pageContent, sharedContent } = splitCmsContent(body.content);
+  // Older editor tabs do not send this flag, so retain their existing behavior
+  // during a rolling deployment. New tabs only touch the shared record when its
+  // content was actually edited on that page.
+  const saveShared = body.saveShared !== false;
   const sharedPath = sharedPathFor(path);
   const locale = path.split("/")[1]!;
 
@@ -148,7 +143,8 @@ export async function POST(request: Request) {
 
       if (
         (page?.revision ?? 0) !== body.baseRevision ||
-        (sharedPage?.revision ?? 0) !== body.baseSharedRevision
+        (saveShared &&
+          (sharedPage?.revision ?? 0) !== body.baseSharedRevision)
       ) {
         throw new Error("CMS_REVISION_CONFLICT");
       }
@@ -185,8 +181,8 @@ export async function POST(request: Request) {
         savedPage.publishedContent,
       );
 
-      if (!sharedPath) {
-        return { page: savedPage, shared: null };
+      if (!sharedPath || !saveShared) {
+        return { page: savedPage, shared: sharedPage };
       }
 
       const nextSharedRevision = (sharedPage?.revision ?? 0) + 1;
@@ -262,6 +258,7 @@ export async function PATCH(request: Request) {
     path?: unknown;
     baseRevision?: unknown;
     baseSharedRevision?: unknown;
+    publishShared?: unknown;
   } | null;
   const path = normalizePagePath(body?.path);
 
@@ -274,6 +271,8 @@ export async function PATCH(request: Request) {
   }
 
   const sharedPath = sharedPathFor(path);
+  // Keep compatibility with an editor tab opened before this deployment.
+  const publishShared = body.publishShared !== false;
 
   try {
     const result = await getPrisma().$transaction(async (transaction) => {
@@ -287,7 +286,8 @@ export async function PATCH(request: Request) {
       if (
         !page ||
         page.revision !== body.baseRevision ||
-        (sharedPage?.revision ?? 0) !== body.baseSharedRevision
+        (publishShared &&
+          (sharedPage?.revision ?? 0) !== body.baseSharedRevision)
       ) {
         throw new Error("CMS_REVISION_CONFLICT");
       }
@@ -319,8 +319,8 @@ export async function PATCH(request: Request) {
         publishedPage.publishedContent,
       );
 
-      if (!sharedPage) {
-        return { page: publishedPage, shared: null };
+      if (!sharedPage || !publishShared) {
+        return { page: publishedPage, shared: sharedPage };
       }
 
       const sharedRevision = sharedPage.revision + 1;

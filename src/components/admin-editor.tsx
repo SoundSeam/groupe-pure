@@ -67,6 +67,10 @@ import {
   type CmsMediaUploadJob,
   type CmsUploadStatus,
 } from "@/lib/cms/upload-contract";
+import {
+  recoverLocalCmsDraft,
+  splitCmsContent,
+} from "@/lib/cms/content-values";
 import { isCmsContent } from "@/lib/cms/types";
 import { sitePages } from "@/lib/cms/pages";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -135,14 +139,14 @@ const adminActionLabels = {
   fr: {
     undo: "Annuler",
     redo: "Rétablir",
-    publish: "Publier",
+    publish: "Publier cette page",
     viewSite: "Voir le site",
     signOut: "Déconnexion",
   },
   en: {
     undo: "Undo",
     redo: "Redo",
-    publish: "Publish",
+    publish: "Publish this page",
     viewSite: "View site",
     signOut: "Sign out",
   },
@@ -573,9 +577,11 @@ export default function AdminEditor({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const mediaFileInputRef = useRef<HTMLInputElement>(null);
   const contentRef = useRef<CmsContent>({});
+  const serverSnapshotRef = useRef<CmsContent>({});
   const loadedRef = useRef(false);
   const revisionRef = useRef(0);
   const sharedRevisionRef = useRef(0);
+  const sharedEditedRef = useRef(false);
   const originalsRef = useRef(new Map<string, CmsValue>());
   const editStartRef = useRef(new Map<string, CmsValue | undefined>());
   const projectTitleStartRef = useRef<CmsValue | undefined>(undefined);
@@ -672,6 +678,8 @@ export default function AdminEditor({
     activity === "saving" ||
     activity === "uploading" ||
     activity === "publishing";
+  const editingBlocked =
+    activity === "uploading" || activity === "publishing";
 
   const syncHistoryState = useCallback(() => {
     setHistoryState({
@@ -828,6 +836,7 @@ export default function AdminEditor({
 
   const applyHistoryPatch = useCallback(
     (key: string, value?: CmsValue) => {
+      if (key.startsWith("shared:")) sharedEditedRef.current = true;
       const next = { ...contentRef.current };
       if (value) next[key] = value;
       else delete next[key];
@@ -886,11 +895,32 @@ export default function AdminEditor({
               revision?: unknown;
               sharedRevision?: unknown;
             };
-            const revisionsMatch =
-              parsed.revision === payload.revision &&
+            const pageRevisionMatches = parsed.revision === payload.revision;
+            const sharedRevisionMatches =
               parsed.sharedRevision === payload.sharedRevision;
-            if (isCmsContent(parsed.content) && revisionsMatch) {
-              nextContent = parsed.content;
+            if (isCmsContent(parsed.content) && pageRevisionMatches) {
+              nextContent = recoverLocalCmsDraft(
+                payload.content,
+                parsed.content,
+                pageRevisionMatches,
+                sharedRevisionMatches,
+              );
+              if (
+                sharedRevisionMatches &&
+                JSON.stringify(splitCmsContent(parsed.content).sharedContent) !==
+                  JSON.stringify(
+                    splitCmsContent(payload.content).sharedContent,
+                  )
+              ) {
+                sharedEditedRef.current = true;
+              }
+              if (!sharedRevisionMatches) {
+                setMessage(
+                  locale === "fr"
+                    ? "Le brouillon de cette page a été récupéré. Les éléments communs ont été actualisés."
+                    : "This page's local draft was recovered. Shared elements were refreshed.",
+                );
+              }
             } else {
               window.localStorage.removeItem(localKey);
               setMessage(
@@ -905,6 +935,7 @@ export default function AdminEditor({
         }
 
         contentRef.current = nextContent;
+        serverSnapshotRef.current = payload.content;
         revisionRef.current = payload.revision;
         sharedRevisionRef.current = payload.sharedRevision;
         setContent(nextContent);
@@ -994,6 +1025,7 @@ export default function AdminEditor({
 
   const updateFromFrame = useCallback(
     (key: string, value: CmsValue) => {
+      if (key.startsWith("shared:")) sharedEditedRef.current = true;
       setDraftContent({ ...contentRef.current, [key]: value });
       setActivity("idle");
       setMessage("");
@@ -1098,54 +1130,76 @@ export default function AdminEditor({
     const contentToSave = contentRef.current;
     const baseRevision = revisionRef.current;
     const baseSharedRevision = sharedRevisionRef.current;
+    const saveShared =
+      JSON.stringify(splitCmsContent(contentToSave).sharedContent) !==
+      JSON.stringify(splitCmsContent(serverSnapshotRef.current).sharedContent);
     const save = (async () => {
       setActivity("saving");
       setMessage("");
 
-      const response = await fetch("/api/cms/content", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: initialPath,
-          content: contentToSave,
-          baseRevision,
-          baseSharedRevision,
-        }),
-      });
-      const payload = (await response.json().catch(() => null)) as {
-        revision?: number;
-        publishedRevision?: number;
-        sharedRevision?: number;
-        publishedSharedRevision?: number;
-        error?: string;
-      } | null;
+      try {
+        const response = await fetch("/api/cms/content", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            path: initialPath,
+            content: contentToSave,
+            baseRevision,
+            baseSharedRevision,
+            saveShared,
+          }),
+        });
+        const payload = (await response.json().catch(() => null)) as {
+          revision?: number;
+          publishedRevision?: number;
+          sharedRevision?: number;
+          publishedSharedRevision?: number;
+          error?: string;
+        } | null;
 
-      if (!response.ok || typeof payload?.revision !== "number") {
+        if (!response.ok || typeof payload?.revision !== "number") {
+          setActivity("error");
+          setMessage(
+            locale === "fr"
+              ? response.status === 409
+                ? "Cette page a changé dans une autre fenêtre. Vos changements restent conservés ici; rechargez avant de réessayer."
+                : "L’enregistrement a échoué. Vos changements restent conservés dans ce navigateur."
+              : payload?.error ??
+                "Saving failed. Your changes remain preserved in this browser.",
+          );
+          return null;
+        }
+
+        revisionRef.current = payload.revision;
+        sharedRevisionRef.current =
+          payload.sharedRevision ?? sharedRevisionRef.current;
+        setRevision(payload.revision);
+        setPublishedRevision(payload.publishedRevision ?? publishedRevision);
+        setSharedRevision(sharedRevisionRef.current);
+        setPublishedSharedRevision(
+          payload.publishedSharedRevision ?? publishedSharedRevision,
+        );
+        serverSnapshotRef.current = contentToSave;
+        setServerSnapshot(contentToSave);
+
+        const isCurrent =
+          JSON.stringify(contentRef.current) === JSON.stringify(contentToSave);
+        if (isCurrent) {
+          window.localStorage.removeItem(`groupe-pure:cms:${initialPath}`);
+          setActivity("saved");
+        } else {
+          setActivity("idle");
+        }
+        return payload.revision;
+      } catch {
         setActivity("error");
-        setMessage(payload?.error ?? "The draft could not be saved.");
+        setMessage(
+          locale === "fr"
+            ? "La connexion a été interrompue. Vos changements restent conservés dans ce navigateur."
+            : "The connection was interrupted. Your changes remain preserved in this browser.",
+        );
         return null;
       }
-
-      revisionRef.current = payload.revision;
-      sharedRevisionRef.current =
-        payload.sharedRevision ?? sharedRevisionRef.current;
-      setRevision(payload.revision);
-      setPublishedRevision(payload.publishedRevision ?? publishedRevision);
-      setSharedRevision(sharedRevisionRef.current);
-      setPublishedSharedRevision(
-        payload.publishedSharedRevision ?? publishedSharedRevision,
-      );
-      setServerSnapshot(contentToSave);
-
-      const isCurrent =
-        JSON.stringify(contentRef.current) === JSON.stringify(contentToSave);
-      if (isCurrent) {
-        window.localStorage.removeItem(`groupe-pure:cms:${initialPath}`);
-        setActivity("saved");
-      } else {
-        setActivity("idle");
-      }
-      return payload.revision;
     })().finally(() => {
       savePromiseRef.current = null;
     });
@@ -1154,10 +1208,24 @@ export default function AdminEditor({
     return save;
   }, [
     initialPath,
+    locale,
     publishedRevision,
     publishedSharedRevision,
     setMessage,
   ]);
+
+  const flushDraft = useCallback(async () => {
+    while (
+      savePromiseRef.current ||
+      JSON.stringify(contentRef.current) !==
+        JSON.stringify(serverSnapshotRef.current)
+    ) {
+      const savedRevision = await saveDraft();
+      if (savedRevision === null) return null;
+    }
+
+    return revisionRef.current;
+  }, [saveDraft]);
 
   useEffect(() => {
     if (
@@ -1178,6 +1246,17 @@ export default function AdminEditor({
   }, [activity, dirty, loaded, saveDraft]);
 
   useEffect(() => {
+    const protectUnsavedChanges = (event: BeforeUnloadEvent) => {
+      if (!dirty && !savePromiseRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", protectUnsavedChanges);
+    return () => window.removeEventListener("beforeunload", protectUnsavedChanges);
+  }, [dirty]);
+
+  useEffect(() => {
     const handleKeyboard = (event: KeyboardEvent) => {
       if (!(event.metaKey || event.ctrlKey)) return;
 
@@ -1192,28 +1271,44 @@ export default function AdminEditor({
     return () => window.removeEventListener("keydown", handleKeyboard);
   }, [redo, undo]);
 
+  async function navigateToEditor(path: string) {
+    if (editingBlocked) return;
+
+    const savedRevision = await flushDraft();
+    if (savedRevision === null) return;
+    window.location.assign(path);
+  }
+
   async function publish() {
     if (activity === "uploading" || activity === "publishing") return;
 
-    let baseRevision = revisionRef.current;
-    if (dirty || savePromiseRef.current) {
-      const savedRevision = await saveDraft();
-      if (savedRevision === null) return;
-      baseRevision = savedRevision;
-    }
+    const baseRevision = await flushDraft();
+    if (baseRevision === null) return;
 
     setActivity("publishing");
     setMessage("");
 
-    const response = await fetch("/api/cms/content", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: initialPath,
-        baseRevision,
-        baseSharedRevision: sharedRevisionRef.current,
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch("/api/cms/content", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: initialPath,
+          baseRevision,
+          baseSharedRevision: sharedRevisionRef.current,
+          publishShared: sharedEditedRef.current,
+        }),
+      });
+    } catch {
+      setActivity("error");
+      setMessage(
+        locale === "fr"
+          ? "La connexion a été interrompue. Le brouillon est conservé, mais la page n’a pas été publiée."
+          : "The connection was interrupted. The draft is saved, but the page was not published.",
+      );
+      return;
+    }
     const payload = (await response.json().catch(() => null)) as {
       revision?: number;
       publishedRevision?: number;
@@ -1228,7 +1323,13 @@ export default function AdminEditor({
       typeof payload.publishedRevision !== "number"
     ) {
       setActivity("error");
-      setMessage(payload?.error ?? "The page could not be published.");
+      setMessage(
+        locale === "fr"
+          ? response.status === 409
+            ? "Cette page a changé dans une autre fenêtre. Le brouillon est conservé; rechargez avant de publier."
+            : "La page n’a pas pu être publiée. Le brouillon reste enregistré."
+          : payload?.error ?? "The page could not be published.",
+      );
       return;
     }
 
@@ -1240,6 +1341,8 @@ export default function AdminEditor({
     setPublishedSharedRevision(
       payload.publishedSharedRevision ?? publishedSharedRevision,
     );
+    sharedEditedRef.current = false;
+    serverSnapshotRef.current = contentRef.current;
     setServerSnapshot(contentRef.current);
     setActivity("published");
   }
@@ -1255,6 +1358,9 @@ export default function AdminEditor({
 
   function updateSelectedMediaAlt(alt: string) {
     if (!selectedMedia || selectedMedia.type !== "image") return;
+    if (selectedMedia.key.startsWith("shared:")) {
+      sharedEditedRef.current = true;
+    }
     const before =
       contentRef.current[selectedMedia.key] ??
       originalsRef.current.get(selectedMedia.key);
@@ -1357,6 +1463,9 @@ export default function AdminEditor({
         ),
       );
     } else {
+      if (target.fieldKey.startsWith("shared:")) {
+        sharedEditedRef.current = true;
+      }
       const before = contentRef.current[target.fieldKey];
       const next: CmsValue = {
         type,
@@ -1660,6 +1769,26 @@ export default function AdminEditor({
     : false;
   const normalizedLibraryQuery = mediaLibraryQuery.trim().toLowerCase();
   const actionLabels = adminActionLabels[locale];
+  const saveStatusText =
+    activity === "error"
+      ? locale === "fr"
+        ? "Enregistrement interrompu"
+        : "Saving interrupted"
+      : activity === "publishing"
+        ? locale === "fr"
+          ? "Publication…"
+          : "Publishing…"
+        : activity === "saving" || dirty
+          ? locale === "fr"
+            ? "Enregistrement…"
+            : "Saving…"
+          : revision > publishedRevision
+            ? locale === "fr"
+              ? "Brouillon enregistré · non publié"
+              : "Draft saved · not published"
+            : locale === "fr"
+              ? "Page publiée"
+              : "Page published";
   const uploadStatusText = uploadStatus
     ? uploadStatusLabel(uploadStatus, locale)
     : "";
@@ -1700,9 +1829,9 @@ export default function AdminEditor({
           <select
             aria-label="Page"
             value={initialPath}
-            disabled={busy}
+            disabled={editingBlocked}
             onChange={(event) => {
-              window.location.assign(`/admin${event.target.value}`);
+              void navigateToEditor(`/admin${event.target.value}`);
             }}
             className="h-9 w-full appearance-none rounded-lg border border-white/10 bg-white/[0.045] py-0 pl-2.5 pr-9 text-xs font-medium text-white outline-none sm:min-w-32 sm:max-w-52"
           >
@@ -1719,6 +1848,10 @@ export default function AdminEditor({
         </div>
         <Link
           href="/admin/pages"
+          onClick={(event) => {
+            event.preventDefault();
+            void navigateToEditor("/admin/pages");
+          }}
           aria-label={
             locale === "fr" ? "Visibilité des pages" : "Page visibility"
           }
@@ -1732,6 +1865,10 @@ export default function AdminEditor({
         </Link>
         <Link
           href="/admin/forms"
+          onClick={(event) => {
+            event.preventDefault();
+            void navigateToEditor("/admin/forms");
+          }}
           aria-label={locale === "fr" ? "Formulaires" : "Forms"}
           title={locale === "fr" ? "Formulaires" : "Forms"}
           className="flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-white/60 transition hover:bg-white/8 hover:text-white"
@@ -1743,10 +1880,10 @@ export default function AdminEditor({
         </Link>
         <button
           type="button"
-          disabled={busy}
+          disabled={editingBlocked}
           data-tooltip={otherLocale.toUpperCase()}
           aria-label={otherLocale.toUpperCase()}
-          onClick={() => window.location.assign(`/admin${equivalentPath}`)}
+          onClick={() => void navigateToEditor(`/admin${equivalentPath}`)}
           className="admin-tooltip flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold uppercase text-white/60 transition hover:bg-white/8 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
         >
           {otherLocale}
@@ -1793,22 +1930,9 @@ export default function AdminEditor({
           />
 
           <span
-            title={
-              activity === "error"
-                ? message
-                : uploadStatus
-                  ? `${uploadStatusText}${
-                      uploadStatus.percentage !== undefined
-                        ? ` · ${uploadStatus.percentage}%`
-                        : ""
-                    }`
-                  : activity === "saving"
-                    ? "Saving draft automatically"
-                : dirty
-                    ? "Draft save pending"
-                    : `Draft saved · revision ${revision}`
-            }
-            className={`hidden h-8 w-8 items-center justify-center sm:flex ${
+            title={activity === "error" ? message : saveStatusText}
+            aria-live="polite"
+            className={`hidden h-8 items-center justify-center gap-1.5 whitespace-nowrap px-1.5 text-[11px] font-medium sm:flex ${
               activity === "error"
                 ? "text-red-300"
                 : activity === "saving" || activity === "uploading"
@@ -1825,6 +1949,7 @@ export default function AdminEditor({
             ) : (
               <CloudCheck className="h-4 w-4" weight={dirty ? "regular" : "fill"} />
             )}
+            <span className="hidden xl:inline">{saveStatusText}</span>
           </span>
 
           <IconButton
@@ -1980,7 +2105,7 @@ export default function AdminEditor({
                   {locale === "fr" ? "Texte alternatif" : "Alternative text"}
                   <input
                     value={selectedMediaValue.alt ?? ""}
-                    disabled={busy}
+                    disabled={editingBlocked}
                     onFocus={() => handleEditStart(selectedMedia.key)}
                     onChange={(event) => updateSelectedMediaAlt(event.target.value)}
                     onBlur={() => handleEditEnd(selectedMedia.key)}
@@ -2024,7 +2149,7 @@ export default function AdminEditor({
                       </h3>
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={editingBlocked}
                         aria-label={
                           locale === "fr"
                             ? `Ajouter un point — ${service?.title ?? serviceKey}`
@@ -2045,7 +2170,7 @@ export default function AdminEditor({
                           <div key={`${serviceKey}:${index}`} className="flex items-center gap-1.5">
                             <input
                               value={example}
-                              disabled={busy}
+                              disabled={editingBlocked}
                               data-service-example={`${serviceKey}:${index}`}
                               aria-label={`${service?.title ?? serviceKey} — ${locale === "fr" ? "point" : "bullet"} ${index + 1}`}
                               onFocus={() => handleEditStart(collectionKey)}
@@ -2074,7 +2199,7 @@ export default function AdminEditor({
                             />
                             <button
                               type="button"
-                              disabled={busy}
+                              disabled={editingBlocked}
                               aria-label={locale === "fr" ? "Supprimer le point" : "Remove bullet"}
                               onClick={() => removeServiceExample(serviceKey, index)}
                               className="grid h-9 w-8 shrink-0 place-items-center rounded-sm text-white/38 transition hover:bg-red-400/10 hover:text-red-200 disabled:opacity-30"
@@ -2088,7 +2213,7 @@ export default function AdminEditor({
                     {!serviceExamples[serviceKey].length ? (
                       <button
                         type="button"
-                        disabled={busy}
+                        disabled={editingBlocked}
                         onClick={() => addServiceExample(serviceKey)}
                         className="w-full rounded-sm border border-dashed border-white/15 px-3 py-3 text-xs text-white/45 transition hover:border-white/30 hover:text-white/70 disabled:opacity-30"
                       >
@@ -2182,7 +2307,7 @@ export default function AdminEditor({
                                 : ""
                             }`}
                           >
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 pr-16">
                               <DotsSixVertical
                                 aria-hidden="true"
                                 className="h-4 w-4 shrink-0 text-white/25 transition group-hover/project:text-white/55"
@@ -2218,7 +2343,7 @@ export default function AdminEditor({
                                 setSelectedProjectId(project.id);
                                 setProjectDialogOpen(true);
                               }}
-                              className="pointer-events-none absolute inset-2 flex translate-y-1 items-center justify-center rounded-sm bg-white px-2 py-1.5 text-xs font-semibold text-[#101211] opacity-0 shadow-lg transition duration-200 hover:bg-white/90 focus:pointer-events-auto focus:translate-y-0 focus:opacity-100 group-hover/project:pointer-events-auto group-hover/project:translate-y-0 group-hover/project:opacity-100 group-focus-within/project:pointer-events-auto group-focus-within/project:translate-y-0 group-focus-within/project:opacity-100"
+                              className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-sm bg-white px-2 py-1.5 text-xs font-semibold text-[#101211] shadow-lg transition hover:bg-white/90"
                             >
                               {locale === "fr" ? "Modifier" : "Edit"}
                             </button>

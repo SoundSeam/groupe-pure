@@ -26,3 +26,31 @@ export function cmsImage(
     ? value
     : { type: "image", value: fallback.value, alt: fallback.alt };
 }
+
+export function splitCmsContent(content: CmsContent) {
+  const pageContent: CmsContent = {};
+  const sharedContent: CmsContent = {};
+
+  Object.entries(content).forEach(([key, value]) => {
+    (key.startsWith("shared:") ? sharedContent : pageContent)[key] = value;
+  });
+
+  return { pageContent, sharedContent };
+}
+
+export function recoverLocalCmsDraft(
+  serverContent: CmsContent,
+  localContent: CmsContent,
+  pageRevisionMatches: boolean,
+  sharedRevisionMatches: boolean,
+) {
+  if (!pageRevisionMatches) return serverContent;
+
+  const server = splitCmsContent(serverContent);
+  const local = splitCmsContent(localContent);
+
+  return {
+    ...local.pageContent,
+    ...(sharedRevisionMatches ? local.sharedContent : server.sharedContent),
+  };
+}
