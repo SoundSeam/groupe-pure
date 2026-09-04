@@ -7,7 +7,9 @@ import { ImageWatermark } from "./image-watermark";
 import type { Locale } from "@/lib/i18n";
 import { getLocalizedPath } from "@/lib/i18n";
 import type { Dictionary, Project, Service } from "@/lib/dictionaries";
+import { cmsImage, cmsText } from "@/lib/cms/content-values";
 import { serviceExamplesKey } from "@/lib/cms/services";
+import type { CmsContent } from "@/lib/cms/types";
 import { fieldClass } from "./styles";
 
 export { fieldClass };
@@ -70,14 +72,17 @@ export function PrimaryButton({
   href,
   children,
   compact = false,
+  cmsTextKey,
 }: {
   href: string;
   children: React.ReactNode;
   compact?: boolean;
+  cmsTextKey?: string;
 }) {
   return (
     <Link
       href={href}
+      data-cms-text-key={cmsTextKey}
       className={`inline-flex rounded-xl bg-[#e4c58f] font-medium text-[#101211] transition hover:bg-[#e4c58f]/90 ${
         compact ? "px-6 py-3 text-base" : "px-9 py-4 text-lg"
       }`}
@@ -95,7 +100,13 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ServiceCard({ service }: { service: Service }) {
+export function ServiceCard({
+  service,
+  cmsTextKeys,
+}: {
+  service: Service;
+  cmsTextKeys?: { title: string; lead: string };
+}) {
   return (
     <article className="flex flex-col">
       <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl bg-[#171a18]">
@@ -123,10 +134,16 @@ export function ServiceCard({ service }: { service: Service }) {
         )}
       </div>
       <div className="mt-8">
-        <h3 className="text-xl font-semibold text-white sm:text-3xl">
+        <h3
+          className="text-xl font-semibold text-white sm:text-3xl"
+          data-cms-text-key={cmsTextKeys?.title}
+        >
           {service.title}
         </h3>
-        <p className="mt-2 text-base font-light leading-7 text-white/70 sm:text-lg">
+        <p
+          className="mt-2 text-base font-light leading-7 text-white/70 sm:text-lg"
+          data-cms-text-key={cmsTextKeys?.lead}
+        >
           {service.lead}
         </p>
       </div>
@@ -227,12 +244,14 @@ export function ProjectCard({
 }
 
 export function Footer({
+  cmsContent = {},
   dict,
   contact,
   lang,
   logo,
   visibleHrefs,
 }: {
+  cmsContent?: CmsContent;
   dict: Dictionary;
   contact: {
     phoneLabel: string;
@@ -245,6 +264,24 @@ export function Footer({
   visibleHrefs: readonly string[];
 }) {
   const currentYear = new Date().getFullYear();
+  const footerKeys = {
+    architecture: "shared:footer:text:div:1/div:1/div:1/div:2/p:1:0",
+    construction: "shared:footer:text:div:1/div:1/div:1/div:2/p:2:0",
+    excavation: "shared:footer:text:div:1/div:1/div:1/div:2/p:3:0",
+    privacy: "shared:footer:text:div:1/div:1/nav:1/a:1:0",
+    terms: "shared:footer:text:div:1/div:1/nav:1/a:2:0",
+    contact: "shared:footer:text:div:1/div:2/h2:1:0",
+    phone: "shared:footer:text:div:1/div:2/div:1/a:1:0",
+    email: "shared:footer:text:div:1/div:2/div:1/a:2:0",
+    address: "shared:footer:text:div:1/div:2/div:1/p:1:0",
+  } as const;
+  const logoMedia = cmsImage(cmsContent, "shared:footer:media:logo", {
+    value: logo,
+    alt: dict.common.logoAlt,
+  });
+  const footerPhone = cmsText(cmsContent, footerKeys.phone, contact.phoneLabel);
+  const footerEmail = cmsText(cmsContent, footerKeys.email, contact.email);
+  const footerAddress = cmsText(cmsContent, footerKeys.address, contact.address);
 
   return (
     <footer
@@ -256,10 +293,10 @@ export function Footer({
         <div className="inline-flex w-fit flex-col items-start self-end lg:justify-self-start">
           <div className="flex items-center gap-4 sm:gap-6">
             <Image
-              src={logo}
+              src={logoMedia.value}
               width={988}
               height={988}
-              alt={dict.common.logoAlt}
+              alt={logoMedia.alt ?? dict.common.logoAlt}
               data-cms-media-key="shared:footer:media:logo"
               className="h-[4.2rem] w-[4.2rem] shrink-0 origin-center scale-[1.05] object-contain sm:h-[4.9rem] sm:w-[4.9rem]"
             />
@@ -268,9 +305,15 @@ export function Footer({
               aria-hidden="true"
             />
             <div className="flex flex-col items-start gap-[0.4875rem] text-left text-[0.95rem] font-medium leading-[1.425rem] text-white sm:gap-[0.6125rem] sm:text-[1.06875rem]">
-              <p>Architecture</p>
-              <p>Construction</p>
-              <p>Excavation</p>
+              <p data-cms-text-key={footerKeys.architecture}>
+                {cmsText(cmsContent, footerKeys.architecture, "Architecture")}
+              </p>
+              <p data-cms-text-key={footerKeys.construction}>
+                {cmsText(cmsContent, footerKeys.construction, "Construction")}
+              </p>
+              <p data-cms-text-key={footerKeys.excavation}>
+                {cmsText(cmsContent, footerKeys.excavation, "Excavation")}
+              </p>
             </div>
           </div>
           <ul className="mt-8 inline-flex w-fit items-center gap-4 text-white">
@@ -305,17 +348,19 @@ export function Footer({
               {visibleHrefs.includes("/privacy") ? (
                 <Link
                   href={getLocalizedPath(lang, "/privacy")}
+                  data-cms-text-key={footerKeys.privacy}
                   className="transition hover:text-white"
                 >
-                  {dict.common.privacy}
+                  {cmsText(cmsContent, footerKeys.privacy, dict.common.privacy)}
                 </Link>
               ) : null}
               {visibleHrefs.includes("/terms") ? (
                 <Link
                   href={getLocalizedPath(lang, "/terms")}
+                  data-cms-text-key={footerKeys.terms}
                   className="transition hover:text-white"
                 >
-                  {dict.common.terms}
+                  {cmsText(cmsContent, footerKeys.terms, dict.common.terms)}
                 </Link>
               ) : null}
             </nav>
@@ -323,20 +368,33 @@ export function Footer({
         </div>
 
         <div className="flex w-full max-w-xs flex-col items-start justify-self-end self-end text-left lg:translate-x-[max(0px,calc(50vw_-_40rem))]">
-          <h2 className="text-2xl font-semibold text-white">
-            {dict.common.contact}
+          <h2
+            className="text-2xl font-semibold text-white"
+            data-cms-text-key={footerKeys.contact}
+          >
+            {cmsText(cmsContent, footerKeys.contact, dict.common.contact)}
           </h2>
           <div className="mt-8 flex w-full flex-col items-start gap-3 text-base text-white/78">
-            <a href={contact.phoneHref} className="inline-block w-fit">
-              {contact.phoneLabel}
+            <a
+              href={contact.phoneHref}
+              className="inline-block w-fit"
+              data-cms-text-key={footerKeys.phone}
+            >
+              {footerPhone}
             </a>
             <a
-              href={`mailto:${contact.email}`}
+              href={`mailto:${footerEmail}`}
               className="inline-block w-fit"
+              data-cms-text-key={footerKeys.email}
             >
-              {contact.email}
+              {footerEmail}
             </a>
-            <p className="w-fit max-w-xs text-balance">{contact.address}</p>
+            <p
+              className="w-fit max-w-xs text-balance"
+              data-cms-text-key={footerKeys.address}
+            >
+              {footerAddress}
+            </p>
           </div>
         </div>
       </div>

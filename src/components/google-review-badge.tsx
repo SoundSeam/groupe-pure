@@ -25,6 +25,7 @@ const GOOGLE_MAPS_READY_CALLBACK = "__groupePureGoogleMapsReady";
 
 type GoogleReviewBadgeProps = {
   apiKey?: string;
+  cmsTextKey?: string;
   fallbackLabel: string;
   mapsUrl: string;
   placeId: string;
@@ -38,6 +39,7 @@ type LiveGoogleRating = {
 
 export default function GoogleReviewBadge({
   apiKey,
+  cmsTextKey,
   fallbackLabel,
   mapsUrl,
   placeId,
@@ -147,7 +149,9 @@ export default function GoogleReviewBadge({
             </span>
           </span>
         ) : (
-          <span className="text-sm font-medium">{fallbackLabel}</span>
+          <span className="text-sm font-medium" data-cms-text-key={cmsTextKey}>
+            {fallbackLabel}
+          </span>
         )}
         <span
           className="flex items-center justify-center gap-1.5"

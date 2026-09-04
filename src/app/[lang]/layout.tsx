@@ -9,6 +9,7 @@ import { getDictionary } from "@/lib/dictionaries";
 import { defaultLocale, getAlternates, hasLocale, locales } from "@/lib/i18n";
 import { assets, contact } from "@/lib/site-data";
 import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
+import { getPublishedSharedContent } from "@/lib/cms/content.server";
 
 export async function generateStaticParams() {
   return locales.map((lang) => ({ lang }));
@@ -64,9 +65,10 @@ export default async function RootLayout({
     notFound();
   }
 
-  const [dict, visibility] = await Promise.all([
+  const [dict, visibility, sharedCmsContent] = await Promise.all([
     getDictionary(lang),
     getRequestSiteVisibility(),
+    getPublishedSharedContent(lang),
   ]);
   const otherLocale = lang === "fr" ? "en" : "fr";
 
@@ -82,6 +84,7 @@ export default async function RootLayout({
         />
         {children}
         <Footer
+          cmsContent={sharedCmsContent}
           dict={dict}
           contact={contact}
           lang={lang}

@@ -18,6 +18,13 @@ import {
   partnerLogos,
 } from "@/lib/site-data";
 import type { Locale } from "@/lib/i18n";
+import { getPublishedPageContent } from "@/lib/cms/content.server";
+import { cmsMedia, cmsText } from "@/lib/cms/content-values";
+import {
+  HOME_CMS_KEYS,
+  homeOpeningHoursCmsKeys,
+  homeServiceCmsKeys,
+} from "@/lib/cms/home";
 import { getRequestSiteVisibility } from "@/lib/cms/page-visibility.server";
 
 export async function generateMetadata({
@@ -56,12 +63,48 @@ export default async function Home({
     notFound();
   }
 
-  const [dict, visibility] = await Promise.all([
+  const [dict, visibility, cmsContent] = await Promise.all([
     getDictionary(lang),
     getRequestSiteVisibility(),
+    getPublishedPageContent(`/${lang}`),
   ]);
   const locale = lang as Locale;
   const contactVisible = visibility[locale].includes("/contact");
+  const homeServices = dict.services.map((service, index) => {
+    const keys = homeServiceCmsKeys(index, service.key);
+    const media = cmsMedia(cmsContent, keys.media);
+    const content = {
+      ...service,
+      title: cmsText(cmsContent, keys.title, service.title),
+      lead: cmsText(cmsContent, keys.lead, service.lead),
+    };
+
+    if (media?.type === "video") return { ...content, video: media.value };
+    if (media?.type === "image") {
+      return {
+        ...content,
+        image: media.value,
+        imageAlt: media.alt ?? service.imageAlt,
+        video: undefined,
+      };
+    }
+    return content;
+  });
+  const openingHours = dict.home.openingHours.map((entry, index) => {
+    const keys = homeOpeningHoursCmsKeys(index);
+    return {
+      day: cmsText(cmsContent, keys.day, entry.day),
+      hours: cmsText(cmsContent, keys.hours, entry.hours),
+      keys,
+      reactKey: entry.day,
+    };
+  });
+  const territoryAddress = cmsText(
+    cmsContent,
+    HOME_CMS_KEYS.address,
+    contact.address,
+  );
+  const territoryMedia = cmsMedia(cmsContent, HOME_CMS_KEYS.territoryMedia);
   const homeFormLabels = {
     ...dict.form,
     submit: dict.home.contactButton,
@@ -91,16 +134,29 @@ export default async function Home({
         <div className="pointer-events-none absolute inset-0 bg-[#101211]/70" />
         <div className="relative z-10 mx-auto flex w-full max-w-7xl items-end gap-8 px-6 sm:px-10">
           <div className="flex max-w-4xl flex-col items-start">
-            <h1 className="text-4xl font-semibold text-white [text-shadow:0_3px_24px_rgba(0,0,0,0.55)] sm:text-6xl">
-              {dict.home.heroTitle}
+            <h1
+              className="text-4xl font-semibold text-white [text-shadow:0_3px_24px_rgba(0,0,0,0.55)] sm:text-6xl"
+              data-cms-text-key={HOME_CMS_KEYS.heroTitle}
+            >
+              {cmsText(cmsContent, HOME_CMS_KEYS.heroTitle, dict.home.heroTitle)}
             </h1>
-            <p className="mt-6 max-w-xl text-lg font-light leading-8 text-white/70 [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] sm:text-xl">
-              {dict.home.heroLead}
+            <p
+              className="mt-6 max-w-xl text-lg font-light leading-8 text-white/70 [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] sm:text-xl"
+              data-cms-text-key={HOME_CMS_KEYS.heroLead}
+            >
+              {cmsText(cmsContent, HOME_CMS_KEYS.heroLead, dict.home.heroLead)}
             </p>
             {contactVisible ? (
               <div className="mt-10">
-                <PrimaryButton href={getLocalizedPath(locale, "/contact")}>
-                  {dict.common.startProject}
+                <PrimaryButton
+                  href={getLocalizedPath(locale, "/contact")}
+                  cmsTextKey={HOME_CMS_KEYS.startProject}
+                >
+                  {cmsText(
+                    cmsContent,
+                    HOME_CMS_KEYS.startProject,
+                    dict.common.startProject,
+                  )}
                 </PrimaryButton>
               </div>
             ) : null}
@@ -134,15 +190,29 @@ export default async function Home({
 
       <SectionShell>
         <div>
-          <h2 className="max-w-3xl text-3xl font-semibold text-white sm:text-5xl">
-            {dict.home.servicesTitle}
+          <h2
+            className="max-w-3xl text-3xl font-semibold text-white sm:text-5xl"
+            data-cms-text-key={HOME_CMS_KEYS.servicesTitle}
+          >
+            {cmsText(
+              cmsContent,
+              HOME_CMS_KEYS.servicesTitle,
+              dict.home.servicesTitle,
+            )}
           </h2>
         </div>
 
         <div className="mt-14 grid gap-5 sm:mt-20 lg:grid-cols-3">
-          {dict.services.map((service) => (
-            <ServiceCard key={service.key} service={service} />
-          ))}
+          {homeServices.map((service, index) => {
+            const keys = homeServiceCmsKeys(index, service.key);
+            return (
+              <ServiceCard
+                key={service.key}
+                service={service}
+                cmsTextKeys={{ title: keys.title, lead: keys.lead }}
+              />
+            );
+          })}
         </div>
       </SectionShell>
 
@@ -150,42 +220,87 @@ export default async function Home({
         <div className="grid gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
           <div className="flex flex-col justify-between">
             <div>
-              <h2 className="max-w-4xl text-3xl font-semibold text-white sm:text-5xl">
-                {dict.home.territoryTitle}
+              <h2
+                className="max-w-4xl text-3xl font-semibold text-white sm:text-5xl"
+                data-cms-text-key={HOME_CMS_KEYS.territoryTitle}
+              >
+                {cmsText(
+                  cmsContent,
+                  HOME_CMS_KEYS.territoryTitle,
+                  dict.home.territoryTitle,
+                )}
               </h2>
-              <address className="mt-6 max-w-3xl text-lg font-light not-italic leading-8 text-white/70 sm:text-xl">
-                {contact.address}
+              <address
+                className="mt-6 max-w-3xl text-lg font-light not-italic leading-8 text-white/70 sm:text-xl"
+                data-cms-text-key={HOME_CMS_KEYS.address}
+              >
+                {territoryAddress}
               </address>
             </div>
             <div className="mt-10">
               <div>
-                <p className="text-sm font-medium text-white/45">
-                  {dict.home.territoryRegionsLabel}
+                <p
+                  className="text-sm font-medium text-white/45"
+                  data-cms-text-key={HOME_CMS_KEYS.territoryRegionsLabel}
+                >
+                  {cmsText(
+                    cmsContent,
+                    HOME_CMS_KEYS.territoryRegionsLabel,
+                    dict.home.territoryRegionsLabel,
+                  )}
                 </p>
-                <p className="mt-1 text-base font-medium leading-7 text-white">
-                  {dict.home.territoryRegions}
+                <p
+                  className="mt-1 text-base font-medium leading-7 text-white"
+                  data-cms-text-key={HOME_CMS_KEYS.territoryRegions}
+                >
+                  {cmsText(
+                    cmsContent,
+                    HOME_CMS_KEYS.territoryRegions,
+                    dict.home.territoryRegions,
+                  )}
                 </p>
               </div>
               <div className="mt-5">
-                <p className="text-sm font-medium text-white/45">
-                  {dict.home.openingHoursLabel}
+                <p
+                  className="text-sm font-medium text-white/45"
+                  data-cms-text-key={HOME_CMS_KEYS.openingHoursLabel}
+                >
+                  {cmsText(
+                    cmsContent,
+                    HOME_CMS_KEYS.openingHoursLabel,
+                    dict.home.openingHoursLabel,
+                  )}
                 </p>
                 <dl className="mt-1 max-w-xs space-y-1 text-base font-medium text-white">
-                  {dict.home.openingHours.map(({ day, hours }) => (
-                    <div className="flex justify-between gap-8" key={day}>
-                      <dt>{day}</dt>
-                      <dd className="tabular-nums">{hours}</dd>
+                  {openingHours.map(({ day, hours, keys, reactKey }) => (
+                    <div className="flex justify-between gap-8" key={reactKey}>
+                      <dt data-cms-text-key={keys.day}>{day}</dt>
+                      <dd className="tabular-nums" data-cms-text-key={keys.hours}>
+                        {hours}
+                      </dd>
                     </div>
                   ))}
                 </dl>
-                <p className="mt-3 max-w-md text-sm font-normal leading-6 text-white/70">
-                  {dict.home.appointmentNote}
+                <p
+                  className="mt-3 max-w-md text-sm font-normal leading-6 text-white/70"
+                  data-cms-text-key={HOME_CMS_KEYS.appointmentNote}
+                >
+                  {cmsText(
+                    cmsContent,
+                    HOME_CMS_KEYS.appointmentNote,
+                    dict.home.appointmentNote,
+                  )}
                 </p>
               </div>
               <div className="mt-10">
                 <GoogleReviewBadge
                   apiKey={googleMapsApiKey}
-                  fallbackLabel={dict.home.googleReviewsLabel}
+                  cmsTextKey={HOME_CMS_KEYS.googleReviewsLabel}
+                  fallbackLabel={cmsText(
+                    cmsContent,
+                    HOME_CMS_KEYS.googleReviewsLabel,
+                    dict.home.googleReviewsLabel,
+                  )}
                   mapsUrl={googleBusiness.mapsUrl}
                   placeId={googleMapsPlaceId}
                 />
@@ -194,20 +309,33 @@ export default async function Home({
           </div>
           <div className="relative min-h-[22rem] overflow-hidden rounded-xl bg-[#171a18] lg:min-h-[32rem]">
             <div className="absolute inset-x-0 -top-[20%] h-[120%]">
-              <Image
-                src={assets.territoryImage}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 40vw, 100vw"
-                data-cms-media-key="media:home:territory"
-                className="object-cover object-[center_70%]"
-              />
+              {territoryMedia?.type === "video" ? (
+                <video
+                  src={territoryMedia.value}
+                  data-cms-media-key={HOME_CMS_KEYS.territoryMedia}
+                  className="h-full w-full object-cover object-[center_70%]"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  aria-hidden="true"
+                />
+              ) : (
+                <Image
+                  src={territoryMedia?.value ?? assets.territoryImage}
+                  alt={territoryMedia?.alt ?? ""}
+                  fill
+                  sizes="(min-width: 1024px) 40vw, 100vw"
+                  data-cms-media-key={HOME_CMS_KEYS.territoryMedia}
+                  className="object-cover object-[center_70%]"
+                />
+              )}
             </div>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/30" />
             <div className="absolute right-3 bottom-3 h-[34%] w-[48%] overflow-hidden rounded-lg bg-[#171a18] [box-shadow:0_0_32px_rgba(0,0,0,0.55)] sm:right-4 sm:bottom-4 sm:h-[32%] sm:w-[44%] lg:h-[30%] lg:w-[40%]">
               <iframe
                 title={dict.common.mapTitle}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(contact.address)}&output=embed&hl=${locale}`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(territoryAddress)}&output=embed&hl=${locale}`}
                 className="h-full w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -221,14 +349,35 @@ export default async function Home({
       <SectionShell>
         <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div>
-            <p className="text-sm font-medium text-white/60">
-              {dict.common.contact}
+            <p
+              className="text-sm font-medium text-white/60"
+              data-cms-text-key={HOME_CMS_KEYS.contactEyebrow}
+            >
+              {cmsText(
+                cmsContent,
+                HOME_CMS_KEYS.contactEyebrow,
+                dict.common.contact,
+              )}
             </p>
-            <h2 className="mt-4 max-w-3xl text-3xl font-semibold text-white sm:text-5xl">
-              {dict.home.contactTitle}
+            <h2
+              className="mt-4 max-w-3xl text-3xl font-semibold text-white sm:text-5xl"
+              data-cms-text-key={HOME_CMS_KEYS.contactTitle}
+            >
+              {cmsText(
+                cmsContent,
+                HOME_CMS_KEYS.contactTitle,
+                dict.home.contactTitle,
+              )}
             </h2>
-            <p className="mt-6 max-w-2xl text-lg font-light leading-8 text-white/70 sm:text-xl">
-              {dict.home.contactLead}
+            <p
+              className="mt-6 max-w-2xl text-lg font-light leading-8 text-white/70 sm:text-xl"
+              data-cms-text-key={HOME_CMS_KEYS.contactLead}
+            >
+              {cmsText(
+                cmsContent,
+                HOME_CMS_KEYS.contactLead,
+                dict.home.contactLead,
+              )}
             </p>
           </div>
           <ContactForm

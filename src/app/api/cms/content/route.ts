@@ -10,6 +10,10 @@ import { getPrisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const noStoreHeaders = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+};
+
 function normalizePagePath(value: unknown) {
   const path = typeof value === "string" ? value : "";
   return /^\/(en|fr)(\/(services|projects|team|contact|privacy|terms))?$/.test(
@@ -63,7 +67,7 @@ export async function GET(request: Request) {
   }
 
   if (!isDatabaseConfigured()) {
-    return NextResponse.json(emptyPayload());
+    return NextResponse.json(emptyPayload(), { headers: noStoreHeaders });
   }
 
   const sharedPath = sharedPathFor(path);
@@ -79,21 +83,24 @@ export async function GET(request: Request) {
     ? sharedPage?.draftContent
     : sharedPage?.publishedContent;
 
-  return NextResponse.json({
-    content: {
-      ...(isCmsContent(pageContent) ? pageContent : {}),
-      ...(isCmsContent(sharedContent) ? sharedContent : {}),
-    },
-    revision: page?.revision ?? 0,
-    publishedRevision: page?.publishedRevision ?? 0,
-    sharedRevision: sharedPage?.revision ?? 0,
-    publishedSharedRevision: sharedPage?.publishedRevision ?? 0,
-    updatedAt:
-      [page?.updatedAt, sharedPage?.updatedAt]
-        .filter((date): date is Date => Boolean(date))
-        .sort((left, right) => right.getTime() - left.getTime())[0]
-        ?.toISOString() ?? null,
-  } satisfies CmsPagePayload);
+  return NextResponse.json(
+    {
+      content: {
+        ...(isCmsContent(pageContent) ? pageContent : {}),
+        ...(isCmsContent(sharedContent) ? sharedContent : {}),
+      },
+      revision: page?.revision ?? 0,
+      publishedRevision: page?.publishedRevision ?? 0,
+      sharedRevision: sharedPage?.revision ?? 0,
+      publishedSharedRevision: sharedPage?.publishedRevision ?? 0,
+      updatedAt:
+        [page?.updatedAt, sharedPage?.updatedAt]
+          .filter((date): date is Date => Boolean(date))
+          .sort((left, right) => right.getTime() - left.getTime())[0]
+          ?.toISOString() ?? null,
+    } satisfies CmsPagePayload,
+    { headers: noStoreHeaders },
+  );
 }
 
 export async function POST(request: Request) {

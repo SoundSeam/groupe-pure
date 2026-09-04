@@ -135,7 +135,10 @@ function directTextIndex(node: Text) {
 
 export function textKey(node: Text) {
   const parent = node.parentElement;
-  return parent ? keyForElement("text", parent, String(directTextIndex(node))) : null;
+  return parent
+    ? (parent.dataset.cmsTextKey ??
+        keyForElement("text", parent, String(directTextIndex(node))))
+    : null;
 }
 
 export function mediaKey(element: HTMLImageElement | HTMLVideoElement) {
